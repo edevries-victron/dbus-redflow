@@ -1,0 +1,109 @@
+#include <cmath>
+#include <QCoreApplication>
+#include <QsLog.h>
+#include <QStringList>
+#include <velib/vecan/products.h>
+#include "batteryController.h"
+#include "battery_controller_bridge.h"
+#include "battery_controller_settings.h"
+#include "battery_controller_updater.h"
+#include "settings.h"
+#include "version.h"
+
+BatteryControllerBridge::BatteryControllerBridge(BatteryController *BatteryController,
+							   BatteryControllerSettings *emSettings,
+							   Settings *settings,
+							   QObject *parent,
+							   BatteryControllerUpdater *BatteryControllerUpdater) :
+	DBusBridge(parent),
+	mBatteryController(BatteryController)
+{
+
+	connect(BatteryController, SIGNAL(destroyed()), this, SLOT(deleteLater()));
+	connect(emSettings, SIGNAL(destroyed()), this, SLOT(deleteLater()));
+	
+	connect(BatteryControllerUpdater, SIGNAL(infoChanged(BatteryController *)),
+		this, SLOT(produceBatteryInfo(BatteryController *)));
+
+	setUpdateInterval(1000);
+
+	setServiceName(QString("com.victronenergy.battery.redflow_%1").
+			arg(BatteryController->serial()));
+
+	produce(BatteryController, "connectionState", "/Connected");
+	produce(BatteryController, "errorCode", "/ErrorCode");
+
+	produce(emSettings, "position", "/Position");
+	produce(emSettings, "customName", "/CustomName");
+
+	QString processName = QCoreApplication::arguments()[0];
+	// The values of the items below will not change after creation, so we don't
+	// need an update mechanism.
+	produce("/Mgmt/ProcessName", processName);
+	produce("/Mgmt/ProcessVersion", VERSION);
+	produce("/FirmwareVersion", BatteryController->firmwareVersion());
+	produce("/ProductName", BatteryController->productName());
+	produce("/ProductId", VE_PROD_ID_CARLO_GAVAZZI_EM);
+	produce("/DeviceType", BatteryController->deviceType());
+	QString portName = BatteryController->portName();
+	int deviceInstance = getDeviceInstance(portName, "/dev/ttyUSB", 288);
+	if (deviceInstance == -1)
+		deviceInstance = getDeviceInstance(portName, "/dev/ttyO", 256);
+	produce("/Mgmt/Connection", portName);
+	produce("/DeviceInstance", deviceInstance);
+	QString serial = BatteryController->serial();
+	produce("/Serial", serial);
+
+	registerService();
+}
+
+bool BatteryControllerBridge::toDBus(const QString &path, QVariant &value)
+{
+	if (path == "/Connected") {
+		value = QVariant(value.value<ConnectionState>() == Connected ? 1 : 0);
+	} else if (path == "/Position") {
+		value = QVariant(static_cast<int>(value.value<Position>()));
+	} else if (path == "/CustomName") {
+		QString name = value.toString();
+		if (name.isEmpty())
+			value = mBatteryController->productName();
+	}
+	if (value.type() == QVariant::Double && !std::isfinite(value.toDouble()))
+		value = QVariant();
+	return true;
+}
+
+
+void BatteryControllerBridge::produceBatteryInfo(BatteryController *bc)
+{
+	produce("/Dc/0/I", bc->BattAmps(), "A", 0);
+	produce("/Dc/0/V", bc->BattVolts(), "V", 0);
+	//produce(pi, "power", path + "/Power", "W", 0);
+	//produce(pi, "energyForward", path + "/Energy/Forward", "kWh", 1);
+	//produce(pi, "energyReverse", path + "/Energy/Reverse", "kWh", 1);
+}
+
+
+bool BatteryControllerBridge::fromDBus(const QString &path, QVariant &value)
+{
+	if (path == "/CustomName") {
+		QString name = value.toString();
+		if (name == mBatteryController->productName())
+			value = "";
+		return true;
+	} else if (path.startsWith("/Hub4/")) {
+		return true;
+	}
+	return false;
+}
+
+
+int BatteryControllerBridge::getDeviceInstance(const QString &path,
+										 const QString &prefix,
+										 int instanceBase)
+{
+	if (path.startsWith(prefix)) {
+		return instanceBase + path.mid(prefix.size()).toInt();
+	}
+	return -1;
+}

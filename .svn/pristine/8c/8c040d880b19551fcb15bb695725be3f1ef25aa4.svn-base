@@ -1,0 +1,206 @@
+/****************************************************************************
+** Meta object code from reading C++ file 'ac_sensor.h'
+**
+** Created: Fri Jul 17 05:43:55 2015
+**      by: The Qt Meta Object Compiler version 63 (Qt 4.8.3)
+**
+** WARNING! All changes made in this file will be lost!
+*****************************************************************************/
+
+#include "src/ac_sensor.h"
+#if !defined(Q_MOC_OUTPUT_REVISION)
+#error "The header file 'ac_sensor.h' doesn't include <QObject>."
+#elif Q_MOC_OUTPUT_REVISION != 63
+#error "This file was generated using the moc from 4.8.3. It"
+#error "cannot be used with the include files from this version of Qt."
+#error "(The moc has changed too much.)"
+#endif
+
+QT_BEGIN_MOC_NAMESPACE
+static const uint qt_meta_data_AcSensor[] = {
+
+ // content:
+       6,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       6,   14, // methods
+       8,   44, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       6,       // signalCount
+
+ // signals: signature, parameters, type, tag, flags
+      10,    9,    9,    9, 0x05,
+      35,    9,    9,    9, 0x05,
+      55,    9,    9,    9, 0x05,
+      78,    9,    9,    9, 0x05,
+      94,    9,    9,    9, 0x05,
+     119,    9,    9,    9, 0x05,
+
+ // properties: name, type, flags
+     154,  138, 0x0049510b,
+     174,  170, 0x02495103,
+     185,  170, 0x02495103,
+     207,  199, 0x0a095001,
+     219,  199, 0x0a495103,
+     226,  170, 0x02495103,
+     242,  170, 0x02495103,
+     252,  199, 0x0a095001,
+
+ // properties: notify_signal_id
+       0,
+       1,
+       2,
+       0,
+       3,
+       4,
+       5,
+       0,
+
+       0        // eod
+};
+
+static const char qt_meta_stringdata_AcSensor[] = {
+    "AcSensor\0\0connectionStateChanged()\0"
+    "deviceTypeChanged()\0deviceSubTypeChanged()\0"
+    "serialChanged()\0firmwareVersionChanged()\0"
+    "errorCodeChanged()\0ConnectionState\0"
+    "connectionState\0int\0deviceType\0"
+    "deviceSubType\0QString\0productName\0"
+    "serial\0firmwareVersion\0errorCode\0"
+    "portName\0"
+};
+
+void AcSensor::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        Q_ASSERT(staticMetaObject.cast(_o));
+        AcSensor *_t = static_cast<AcSensor *>(_o);
+        switch (_id) {
+        case 0: _t->connectionStateChanged(); break;
+        case 1: _t->deviceTypeChanged(); break;
+        case 2: _t->deviceSubTypeChanged(); break;
+        case 3: _t->serialChanged(); break;
+        case 4: _t->firmwareVersionChanged(); break;
+        case 5: _t->errorCodeChanged(); break;
+        default: ;
+        }
+    }
+    Q_UNUSED(_a);
+}
+
+const QMetaObjectExtraData AcSensor::staticMetaObjectExtraData = {
+    0,  qt_static_metacall 
+};
+
+const QMetaObject AcSensor::staticMetaObject = {
+    { &QObject::staticMetaObject, qt_meta_stringdata_AcSensor,
+      qt_meta_data_AcSensor, &staticMetaObjectExtraData }
+};
+
+#ifdef Q_NO_DATA_RELOCATION
+const QMetaObject &AcSensor::getStaticMetaObject() { return staticMetaObject; }
+#endif //Q_NO_DATA_RELOCATION
+
+const QMetaObject *AcSensor::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->metaObject : &staticMetaObject;
+}
+
+void *AcSensor::qt_metacast(const char *_clname)
+{
+    if (!_clname) return 0;
+    if (!strcmp(_clname, qt_meta_stringdata_AcSensor))
+        return static_cast<void*>(const_cast< AcSensor*>(this));
+    return QObject::qt_metacast(_clname);
+}
+
+int AcSensor::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QObject::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 6)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 6;
+    }
+#ifndef QT_NO_PROPERTIES
+      else if (_c == QMetaObject::ReadProperty) {
+        void *_v = _a[0];
+        switch (_id) {
+        case 0: *reinterpret_cast< ConnectionState*>(_v) = connectionState(); break;
+        case 1: *reinterpret_cast< int*>(_v) = deviceType(); break;
+        case 2: *reinterpret_cast< int*>(_v) = deviceSubType(); break;
+        case 3: *reinterpret_cast< QString*>(_v) = productName(); break;
+        case 4: *reinterpret_cast< QString*>(_v) = serial(); break;
+        case 5: *reinterpret_cast< int*>(_v) = firmwareVersion(); break;
+        case 6: *reinterpret_cast< int*>(_v) = errorCode(); break;
+        case 7: *reinterpret_cast< QString*>(_v) = portName(); break;
+        }
+        _id -= 8;
+    } else if (_c == QMetaObject::WriteProperty) {
+        void *_v = _a[0];
+        switch (_id) {
+        case 0: setConnectionState(*reinterpret_cast< ConnectionState*>(_v)); break;
+        case 1: setDeviceType(*reinterpret_cast< int*>(_v)); break;
+        case 2: setDeviceSubType(*reinterpret_cast< int*>(_v)); break;
+        case 4: setSerial(*reinterpret_cast< QString*>(_v)); break;
+        case 5: setFirmwareVersion(*reinterpret_cast< int*>(_v)); break;
+        case 6: setErrorCode(*reinterpret_cast< int*>(_v)); break;
+        }
+        _id -= 8;
+    } else if (_c == QMetaObject::ResetProperty) {
+        _id -= 8;
+    } else if (_c == QMetaObject::QueryPropertyDesignable) {
+        _id -= 8;
+    } else if (_c == QMetaObject::QueryPropertyScriptable) {
+        _id -= 8;
+    } else if (_c == QMetaObject::QueryPropertyStored) {
+        _id -= 8;
+    } else if (_c == QMetaObject::QueryPropertyEditable) {
+        _id -= 8;
+    } else if (_c == QMetaObject::QueryPropertyUser) {
+        _id -= 8;
+    }
+#endif // QT_NO_PROPERTIES
+    return _id;
+}
+
+// SIGNAL 0
+void AcSensor::connectionStateChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 0, 0);
+}
+
+// SIGNAL 1
+void AcSensor::deviceTypeChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 1, 0);
+}
+
+// SIGNAL 2
+void AcSensor::deviceSubTypeChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 2, 0);
+}
+
+// SIGNAL 3
+void AcSensor::serialChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 3, 0);
+}
+
+// SIGNAL 4
+void AcSensor::firmwareVersionChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 4, 0);
+}
+
+// SIGNAL 5
+void AcSensor::errorCodeChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 5, 0);
+}
+QT_END_MOC_NAMESPACE

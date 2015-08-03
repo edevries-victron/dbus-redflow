@@ -1,0 +1,38 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+	<interface name="com.victronenergy.BusItem">
+		<method name="GetDescription">
+			<arg direction="in" type="s" name="language"/>
+			<arg direction="in" type="i" name="length"/>
+			<arg direction="out" type="s" name="descr"/>
+		</method>
+		<method name="GetValue">
+			<arg direction="out" type="v" name="value"/>
+		</method>
+		<method name="GetText">
+			<arg direction="out" type="s" name="value"/>
+		</method>
+		<method name="SetValue">
+			<arg direction="in" type="v" name="value"/>
+			<arg direction="out" type="i" name="retval"/>
+		</method>
+		<method name="GetMin">
+			<arg direction="out" type="v" name="value"/>
+		</method>
+		<method name="GetMax">
+			<arg direction="out" type="v" name="value"/>
+		</method>
+		<method name="SetDefault">
+			<arg direction="out" type="i" name="retval"/>
+		</method>
+		<method name="GetDefault">
+			<arg direction="out" type="v" name="value"/>
+		</method>
+		<property access="readwrite" type="v" name="Value"/>
+		<property access="read" type="s" name="Text"/>
+		<signal name="PropertiesChanged">
+			<arg name="changes" type="a{sv}" direction="out"/>
+			<annotation name="com.trolltech.QtDBus.QtTypeName.In0" value="QVariantMap"/>
+		</signal>
+	</interface>
+</node>

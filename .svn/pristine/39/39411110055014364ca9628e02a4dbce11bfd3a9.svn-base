@@ -1,0 +1,241 @@
+/****************************************************************************
+** Meta object code from reading C++ file 'ac_sensor_settings.h'
+**
+** Created: Wed Jul 22 01:31:31 2015
+**      by: The Qt Meta Object Compiler version 63 (Qt 4.8.3)
+**
+** WARNING! All changes made in this file will be lost!
+*****************************************************************************/
+
+#include "src/ac_sensor_settings.h"
+#if !defined(Q_MOC_OUTPUT_REVISION)
+#error "The header file 'ac_sensor_settings.h' doesn't include <QObject>."
+#elif Q_MOC_OUTPUT_REVISION != 63
+#error "This file was generated using the moc from 4.8.3. It"
+#error "cannot be used with the include files from this version of Qt."
+#error "(The moc has changed too much.)"
+#endif
+
+QT_BEGIN_MOC_NAMESPACE
+static const uint qt_meta_data_AcSensorSettings[] = {
+
+ // content:
+       6,       // revision
+       0,       // classname
+       0,    0, // classinfo
+       9,   14, // methods
+      10,   59, // properties
+       0,    0, // enums/sets
+       0,    0, // constructors
+       0,       // flags
+       9,       // signalCount
+
+ // signals: signature, parameters, type, tag, flags
+      18,   17,   17,   17, 0x05,
+      38,   17,   17,   17, 0x05,
+      59,   17,   17,   17, 0x05,
+      81,   17,   17,   17, 0x05,
+     111,   17,   17,   17, 0x05,
+     129,   17,   17,   17, 0x05,
+     147,   17,   17,   17, 0x05,
+     172,   17,   17,   17, 0x05,
+     197,   17,   17,   17, 0x05,
+
+ // properties: name, type, flags
+     226,  222, 0x02095001,
+     245,  237, 0x0a095001,
+     252,  237, 0x0a495103,
+     263,  237, 0x0a495103,
+     280,  275, 0x01495103,
+     302,  293, 0x0049510b,
+     320,  311, 0x0049510b,
+     336,  329, 0x06495103,
+     352,  329, 0x06495103,
+     368,  329, 0x06495103,
+
+ // properties: notify_signal_id
+       0,
+       0,
+       0,
+       1,
+       2,
+       4,
+       5,
+       6,
+       7,
+       8,
+
+       0        // eod
+};
+
+static const char qt_meta_stringdata_AcSensorSettings[] = {
+    "AcSensorSettings\0\0customNameChanged()\0"
+    "serviceTypeChanged()\0isMultiPhaseChanged()\0"
+    "isControlLoopEnabledChanged()\0"
+    "hub4ModeChanged()\0positionChanged()\0"
+    "l1ReverseEnergyChanged()\0"
+    "l2ReverseEnergyChanged()\0"
+    "l3ReverseEnergyChanged()\0int\0deviceType\0"
+    "QString\0serial\0customName\0serviceType\0"
+    "bool\0isMultiPhase\0Hub4Mode\0hub4Mode\0"
+    "Position\0position\0double\0l1ReverseEnergy\0"
+    "l2ReverseEnergy\0l3ReverseEnergy\0"
+};
+
+void AcSensorSettings::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        Q_ASSERT(staticMetaObject.cast(_o));
+        AcSensorSettings *_t = static_cast<AcSensorSettings *>(_o);
+        switch (_id) {
+        case 0: _t->customNameChanged(); break;
+        case 1: _t->serviceTypeChanged(); break;
+        case 2: _t->isMultiPhaseChanged(); break;
+        case 3: _t->isControlLoopEnabledChanged(); break;
+        case 4: _t->hub4ModeChanged(); break;
+        case 5: _t->positionChanged(); break;
+        case 6: _t->l1ReverseEnergyChanged(); break;
+        case 7: _t->l2ReverseEnergyChanged(); break;
+        case 8: _t->l3ReverseEnergyChanged(); break;
+        default: ;
+        }
+    }
+    Q_UNUSED(_a);
+}
+
+const QMetaObjectExtraData AcSensorSettings::staticMetaObjectExtraData = {
+    0,  qt_static_metacall 
+};
+
+const QMetaObject AcSensorSettings::staticMetaObject = {
+    { &QObject::staticMetaObject, qt_meta_stringdata_AcSensorSettings,
+      qt_meta_data_AcSensorSettings, &staticMetaObjectExtraData }
+};
+
+#ifdef Q_NO_DATA_RELOCATION
+const QMetaObject &AcSensorSettings::getStaticMetaObject() { return staticMetaObject; }
+#endif //Q_NO_DATA_RELOCATION
+
+const QMetaObject *AcSensorSettings::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->metaObject : &staticMetaObject;
+}
+
+void *AcSensorSettings::qt_metacast(const char *_clname)
+{
+    if (!_clname) return 0;
+    if (!strcmp(_clname, qt_meta_stringdata_AcSensorSettings))
+        return static_cast<void*>(const_cast< AcSensorSettings*>(this));
+    return QObject::qt_metacast(_clname);
+}
+
+int AcSensorSettings::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QObject::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 9)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 9;
+    }
+#ifndef QT_NO_PROPERTIES
+      else if (_c == QMetaObject::ReadProperty) {
+        void *_v = _a[0];
+        switch (_id) {
+        case 0: *reinterpret_cast< int*>(_v) = deviceType(); break;
+        case 1: *reinterpret_cast< QString*>(_v) = serial(); break;
+        case 2: *reinterpret_cast< QString*>(_v) = customName(); break;
+        case 3: *reinterpret_cast< QString*>(_v) = serviceType(); break;
+        case 4: *reinterpret_cast< bool*>(_v) = isMultiPhase(); break;
+        case 5: *reinterpret_cast< Hub4Mode*>(_v) = hub4Mode(); break;
+        case 6: *reinterpret_cast< Position*>(_v) = position(); break;
+        case 7: *reinterpret_cast< double*>(_v) = l1ReverseEnergy(); break;
+        case 8: *reinterpret_cast< double*>(_v) = l2ReverseEnergy(); break;
+        case 9: *reinterpret_cast< double*>(_v) = l3ReverseEnergy(); break;
+        }
+        _id -= 10;
+    } else if (_c == QMetaObject::WriteProperty) {
+        void *_v = _a[0];
+        switch (_id) {
+        case 2: setCustomName(*reinterpret_cast< QString*>(_v)); break;
+        case 3: setServiceType(*reinterpret_cast< QString*>(_v)); break;
+        case 4: setIsMultiPhase(*reinterpret_cast< bool*>(_v)); break;
+        case 5: setHub4Mode(*reinterpret_cast< Hub4Mode*>(_v)); break;
+        case 6: setPosition(*reinterpret_cast< Position*>(_v)); break;
+        case 7: setL1ReverseEnergy(*reinterpret_cast< double*>(_v)); break;
+        case 8: setL2ReverseEnergy(*reinterpret_cast< double*>(_v)); break;
+        case 9: setL3ReverseEnergy(*reinterpret_cast< double*>(_v)); break;
+        }
+        _id -= 10;
+    } else if (_c == QMetaObject::ResetProperty) {
+        _id -= 10;
+    } else if (_c == QMetaObject::QueryPropertyDesignable) {
+        _id -= 10;
+    } else if (_c == QMetaObject::QueryPropertyScriptable) {
+        _id -= 10;
+    } else if (_c == QMetaObject::QueryPropertyStored) {
+        _id -= 10;
+    } else if (_c == QMetaObject::QueryPropertyEditable) {
+        _id -= 10;
+    } else if (_c == QMetaObject::QueryPropertyUser) {
+        _id -= 10;
+    }
+#endif // QT_NO_PROPERTIES
+    return _id;
+}
+
+// SIGNAL 0
+void AcSensorSettings::customNameChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 0, 0);
+}
+
+// SIGNAL 1
+void AcSensorSettings::serviceTypeChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 1, 0);
+}
+
+// SIGNAL 2
+void AcSensorSettings::isMultiPhaseChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 2, 0);
+}
+
+// SIGNAL 3
+void AcSensorSettings::isControlLoopEnabledChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 3, 0);
+}
+
+// SIGNAL 4
+void AcSensorSettings::hub4ModeChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 4, 0);
+}
+
+// SIGNAL 5
+void AcSensorSettings::positionChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 5, 0);
+}
+
+// SIGNAL 6
+void AcSensorSettings::l1ReverseEnergyChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 6, 0);
+}
+
+// SIGNAL 7
+void AcSensorSettings::l2ReverseEnergyChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 7, 0);
+}
+
+// SIGNAL 8
+void AcSensorSettings::l3ReverseEnergyChanged()
+{
+    QMetaObject::activate(this, &staticMetaObject, 8, 0);
+}
+QT_END_MOC_NAMESPACE

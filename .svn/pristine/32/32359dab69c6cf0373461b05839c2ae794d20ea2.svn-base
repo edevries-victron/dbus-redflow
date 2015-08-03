@@ -1,0 +1,9 @@
+# pack-refs with: peeled fully-peeled 
+2d0623625801779a8062b0060c193d719d9a832d refs/remotes/origin/checksetup
+619e1a190be29439a366b1d01ce604e577a9010e refs/remotes/origin/hub4control
+3a93e7cd95f82dd5262d6461873b2c53292fa7b8 refs/remotes/origin/master
+b015b9f40b0e3ac4fff61afce36b65ffcd07a6a6 refs/tags/v1.0.0
+^a97a1d540ff7116fe889e2e5b27b87d4bb6242b7
+229b9cbefc69faf608d1b87eeeaec1c6e4cf43d6 refs/tags/v1.0.1
+e6198d820b40bfb58d6fed8531abde436e458897 refs/tags/v1.0.2
+^3a93e7cd95f82dd5262d6461873b2c53292fa7b8

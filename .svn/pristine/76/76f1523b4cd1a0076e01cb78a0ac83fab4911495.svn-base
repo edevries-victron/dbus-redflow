@@ -1,0 +1,11 @@
+SRCS-${CFG_WITH_BIT_PAIR} += ve_bit_pair.c
+SRCS-${CFG_WITH_VARIANT} += ve_variant.c
+SRCS-${CFG_WITH_VARIANT_BITS} += ve_variant_bits.c
+SRCS-${CFG_WITH_VARIANT_CONSOLE} += ve_variant_console.c
+SRCS-${CFG_WITH_VARIANT_PRINT} += ve_variant_print.c
+SRCS-${CFG_WITH_VE_DBUS_ITEM} += ve_dbus_item.c
+SRCS-${CFG_WITH_VE_DBUS_ITEM_CONSUMER} += ve_dbus_item_consumer.c
+SRCS-${CFG_WITH_VE_ITEM} += ve_item.c
+SRCS-${CFG_WITH_VE_STAMP} += ve_stamp.c
+SRCS-${CFG_WITH_VE_STR} += ve_str.c
+SRCS-${CFG_WITH_VE_VALUES} += ve_values.c

@@ -1,0 +1,162 @@
+#include <QsLog.h>
+#include "battery_controller_settings.h"
+
+BatteryControllerSettings::BatteryControllerSettings(int deviceType, const QString &serial,
+										 QObject *parent) :
+	QObject(parent),
+	mDeviceType(deviceType),
+	mSerial(serial),
+	mHub4Mode(Hub4PhaseL1),
+	mPosition(Input1),
+	mL1Energy(0),
+	mL2Energy(0),
+	mL3Energy(0)
+{
+}
+
+int BatteryControllerSettings::deviceType() const
+{
+	return mDeviceType;
+}
+
+QString BatteryControllerSettings::serial() const
+{
+	return mSerial;
+}
+
+QString BatteryControllerSettings::customName() const
+{
+	return mCustomName;
+}
+
+void BatteryControllerSettings::setCustomName(const QString &n)
+{
+	if (mCustomName == n)
+		return;
+	mCustomName	= n;
+	emit customNameChanged();
+}
+
+QString BatteryControllerSettings::serviceType() const
+{
+	return mServiceType;
+}
+
+void BatteryControllerSettings::setServiceType(const QString &t)
+{
+	if (mServiceType == t)
+		return;
+	mServiceType = t;
+	emit serviceTypeChanged();
+}
+
+bool BatteryControllerSettings::isMultiPhase() const
+{
+	return mIsMultiPhase;
+}
+
+void BatteryControllerSettings::setIsMultiPhase(bool b)
+{
+	if (mIsMultiPhase == b)
+		return;
+	mIsMultiPhase = b;
+	emit isMultiPhaseChanged();
+}
+
+Hub4Mode BatteryControllerSettings::hub4Mode() const
+{
+	return mHub4Mode;
+}
+
+void BatteryControllerSettings::setHub4Mode(Hub4Mode m)
+{
+	if (mHub4Mode == m)
+		return;
+	mHub4Mode = m;
+	emit hub4ModeChanged();
+}
+
+Position BatteryControllerSettings::position()
+{
+	return mPosition;
+}
+
+void BatteryControllerSettings::setPosition(Position p)
+{
+	if (mPosition == p)
+		return;
+	mPosition = p;
+	emit positionChanged();
+}
+
+double BatteryControllerSettings::l1ReverseEnergy() const
+{
+	return mL1Energy;
+}
+
+void BatteryControllerSettings::setL1ReverseEnergy(double e)
+{
+	if (mL1Energy == e)
+		return;
+	mL1Energy = e;
+	emit l1ReverseEnergyChanged();
+}
+
+double BatteryControllerSettings::l2ReverseEnergy() const
+{
+	return mL2Energy;
+}
+
+void BatteryControllerSettings::setL2ReverseEnergy(double e)
+{
+	if (mL2Energy == e)
+		return;
+	mL2Energy = e;
+	emit l2ReverseEnergyChanged();
+}
+
+double BatteryControllerSettings::l3ReverseEnergy() const
+{
+	return mL3Energy;
+}
+
+void BatteryControllerSettings::setL3ReverseEnergy(double e)
+{
+	if (mL3Energy == e)
+		return;
+	mL3Energy = e;
+	emit l3ReverseEnergyChanged();
+}
+
+double BatteryControllerSettings::getReverseEnergy(Phase phase) const
+{
+	switch (phase) {
+	case PhaseL1:
+		return mL1Energy;
+	case PhaseL2:
+		return mL2Energy;
+	case PhaseL3:
+		return mL3Energy;
+	default:
+		QLOG_ERROR() << "Incorrect phase:" << phase;
+		return 0;
+	}
+}
+
+void BatteryControllerSettings::setReverseEnergy(Phase phase, double value)
+{
+	switch (phase) {
+	case PhaseL1:
+		setL1ReverseEnergy(value);
+		break;
+	case PhaseL2:
+		setL2ReverseEnergy(value);
+		break;
+	case PhaseL3:
+		setL3ReverseEnergy(value);
+		break;
+	default:
+		QLOG_ERROR() << "Incorrect phase:" << phase;
+		break;
+	}
+}

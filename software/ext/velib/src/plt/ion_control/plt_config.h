@@ -1,0 +1,5 @@
+#define CFG_WITH_CANHW_I527		1
+#define CFG_WITH_TASK_EMBEDDED	1
+#define CFG_MAIN_VOID			1
+#define CFG_ASSERT_ENABLED		1
+#define CFG_ASSERT_FILE			1
