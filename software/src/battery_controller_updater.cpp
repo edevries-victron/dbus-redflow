@@ -1,75 +1,49 @@
-#include <cmath>
 #include <QsLog.h>
 #include <QTimer>
 #include "batteryController.h"
 #include "battery_controller_settings.h"
 #include "battery_controller_updater.h"
-#include "battery_controller_bridge.h"
 #include "modbus_rtu.h"
 
-static const int MaxAcquisitionIndex = 1;
-static const int MaxRegCount = 6;
 static const int MaxTimeoutCount = 5;
-
+static const int MeasurementWaitInterval = 5000;
 static const int ConnectionLostWaitInterval = 60 * 1000;  // 60 seconds in ms
-static const int UpdateSettingsInterval = 10 * 60 * 1000; // 10 minutes in ms
 
-enum ParameterType {
-	None,
-	BattVolts,
-	BussVolts,
-	BattAmps,
-	BussAmps,
-	BattTemp,
-	AirTemp,
-	SOC,
-	SOC_AmpHrs,
-	StsRegWarning,
-	StsRegSummary,
-	StsRegHardwareFailure,
-	StsRegOperationalFailure,
-	NotUsed,
-	StsRegOperationalMode,
-	HealthIndication,
-	ZBMState
+enum ModbusRegisters {
+	RegStatusSummary = 0x9001,
+	RegHardwareFailure = 0x9002,
+	RegOperationalFailure = 0x9003,
+	RegWarningIndicator = 0x9004,
+	RegOperationalMode = 0x9008,
+	RegSerial = 0x9010,
+	RegStateOfCharge = 0x9011,
+	RefAmpHours = 0x9012,
+	RegBatteryVoltage = 0x9013,
+	RegBatteryCurrent = 0x9014,
+	RegBatteryTemperature = 0x9015,
+	RegAirTemperature = 0x9016,
+	RegStateOfHealth = 0x9017,
+	RegBusVoltage = 0x9018,
+	RegBatteryState = 0x9019,
+	RegDeviceAddress = 0x9030,
+	RegClearStatusFlags = 0x9031,
+	RegDelayedSelfMaintenance = 0x9032,
+	RegEnterRunCommand = 0x9033,
+	RegImmediateSelfMaintenance = 0x9034
 };
 
-struct RegisterCommand {
-	int regOffset;
-	ParameterType action;
-};
-
-struct CompositeCommand {
-	int reg;
-	int inverval;
-	RegisterCommand actions[MaxRegCount];
-};
-
-static const CompositeCommand ZBMCommands[] = {
-	{ 0x9011, 0, { { 0, SOC }, { 1, SOC_AmpHrs }, { 2, BattVolts }, { 3, BattAmps }, { 4, BattTemp }, { 5, AirTemp } } },
-	{ 0x9001, 0, { { 0, StsRegSummary }, { 1, StsRegHardwareFailure }, { 2, StsRegOperationalFailure }, { 3, StsRegWarning }, { 4, NotUsed }, { 5, NotUsed } } },
-	{ 0x9008, 0, { { 0, StsRegOperationalMode }, { 1, NotUsed }, { 2, NotUsed }, { 3, NotUsed }, { 4, NotUsed }, { 5, NotUsed } } },
-	{ 0x9017, 0, { { 0, HealthIndication }, { 1, BussVolts }, { 2, ZBMState }, { 3, NotUsed }, { 4, NotUsed }, { 5, NotUsed } } }		
-};
-
-static const int ZBMCommandCount = sizeof(ZBMCommands) / sizeof(ZBMCommands[0]);
-
-
-BatteryControllerUpdater::BatteryControllerUpdater(BatteryController *mBatteryController, ModbusRtu *modbus, QObject *parent):
+BatteryControllerUpdater::BatteryControllerUpdater(BatteryController *mBatteryController,
+												   ModbusRtu *modbus,
+												   QObject *parent):
 	QObject(parent),
+	mBatteryController(mBatteryController),
+	mUpdatingController(false),
 	mSettings(0),
 	mModbus(0),
 	mAcquisitionTimer(new QTimer(this)),
-	mSettingsUpdateTimer(new QTimer(this)),
 	mTimeoutCount(0),
-	mSetupRequested(false),
-	mApplication(0),
-	mState(DeviceId),
-	mCommands(0),
-	mCommandCount(0),
-	mCommandIndex(0),
-	mAcquisitionIndex(0),
-	mBatteryController(mBatteryController)
+	mState(Init),
+	mTmpState(Wait)
 {
 	Q_ASSERT(mBatteryController != 0);
 	mModbus = modbus;
@@ -81,10 +55,14 @@ BatteryControllerUpdater::BatteryControllerUpdater(BatteryController *mBatteryCo
 			this, SLOT(onErrorReceived(int, quint8, int)));
 	connect(mAcquisitionTimer, SIGNAL(timeout()),
 			this, SLOT(onWaitFinished()));
-	connect(mSettingsUpdateTimer, SIGNAL(timeout()),
-			this, SLOT(onUpdateSettings()));
-	mSettingsUpdateTimer->setInterval(UpdateSettingsInterval);
-	mSettingsUpdateTimer->start();
+	connect(mBatteryController, SIGNAL(clearStatusRegisterFlagsChanged()),
+			this, SLOT(onClearStatusRegisterFlagsChanged()));
+	connect(mBatteryController, SIGNAL(operationalModeChanged()),
+			this, SLOT(onOperationalModeChanged()));
+	connect(mBatteryController, SIGNAL(requestDelayedSelfMaintenanceChanged()),
+			this, SLOT(onRequestDelayedSelfMaintenanceChanged()));
+	connect(mBatteryController, SIGNAL(requestImmediateSelfMaintenanceChanged()),
+			this, SLOT(onRequestImmediateSelfMaintenanceChanged()));
 	mAcquisitionTimer->setSingleShot(true);
 	mStopwatch.start();
 	startNextAction();
@@ -95,11 +73,12 @@ BatteryControllerSettings *BatteryControllerUpdater::settings()
 	return mSettings;
 }
 
-void BatteryControllerUpdater::onErrorReceived(int errorType, quint8 addr, int exception)
+void BatteryControllerUpdater::onErrorReceived(int errorType, quint8 slaveAddress,
+											   int exception)
 {
-	if (addr != mBatteryController->DeviceAddress())
+	if (slaveAddress != mBatteryController->DeviceAddress())
 		return;
-
+	QLOG_WARN() << __FUNCTION__ << errorType << slaveAddress << exception;
 	if (errorType == ModbusRtu::Timeout) {
 		if (mTimeoutCount == MaxTimeoutCount) {
 			if (!mBatteryController->serial().isEmpty()) {
@@ -118,96 +97,143 @@ void BatteryControllerUpdater::onErrorReceived(int errorType, quint8 addr, int e
 	startNextAction();
 }
 
-void BatteryControllerUpdater::onReadCompleted(int function, quint8 addr,
-										 const QList<quint16> &registers)
+static bool isBitSet(quint16 value, int bit)
 {
-	if (addr != mBatteryController->DeviceAddress())
+	return (value & (1 << bit)) != 0;
+}
+
+static int getErrorState(quint16 errorValue, int bit)
+{
+	return isBitSet(errorValue, bit) ? 2 : 0;
+}
+
+static int getWarningState(quint16 errorValue, int bit)
+{
+	return isBitSet(errorValue, bit) ? 1 : 0;
+}
+
+static int getAlarmState(quint16 errorValue, quint16 warningValue, int bit)
+{
+	return isBitSet(errorValue, bit) ? 2 : (isBitSet(warningValue, bit) ? 1 : 0);
+}
+
+void BatteryControllerUpdater::onReadCompleted(int function, quint8 slaveAddress,
+											   const QList<quint16> &registers)
+{
+	if (slaveAddress != mBatteryController->DeviceAddress())
 		return;
+	// QLOG_WARN() << __FUNCTION__ << slaveAddress;
 	Q_UNUSED(function)
 	switch (mState) {
-	case DeviceId:
-		QLOG_INFO() << "EquipmentId:" << registers[0];
-		//mBatteryController->setDeviceType(registers[0]);
-			mState = Serial;
-
-		break;
-	case VersionCode:
-		//mBatteryController->setDeviceSubType(registers[0]);
-		mState = Serial;
-		break;
 	case Serial:
 	{
-
-		QString serial;
-			
-		serial = QString::number(((registers[0]<<16)&0xffff) + registers[1]);
-
+		QString serial = QString::number(registers[0]);
+		QLOG_INFO() << "Serial number:" << serial;
+		mSettings = new BatteryControllerSettings(0, serial, this);
+		mState = Start;
 		mBatteryController->setSerial(serial);
-		QLOG_INFO() << "Serial number:" << registers[0] << registers[1];
-		mState = FirmwareVersion;
+		mBatteryController->setConnectionState(Detected);
 		break;
 	}
-	case FirmwareVersion:
-		mBatteryController->setFirmwareVersion(registers[0]);
-		QLOG_INFO() << "FirmwareVersion: " << registers[0] << registers[1];
-		mState = WaitForStart;
+	case DeviceState:
+	{
+		qint16 hwFailure = registers[1];
+		qint16 opFailure = registers[2];
+		qint16 warning = registers[3];
+		mBatteryController->setMaintenanceAlarm(getWarningState(warning, 11));
+		mBatteryController->setMaintenanceActiveAlarm(getWarningState(warning, 10));
+		mBatteryController->setOverCurrentAlarm(getAlarmState(opFailure, warning, 15));
+		mBatteryController->setOverVoltageAlarm(getAlarmState(opFailure, warning, 14));
+		mBatteryController->setBatteryTemperatureAlarm(getAlarmState(opFailure, warning, 13));
+		mBatteryController->setZincPumpAlarm(getErrorState(hwFailure, 15));
+		mBatteryController->setBromidePumpAlarm(getErrorState(hwFailure, 14));
+		mBatteryController->setLeakSensorsAlarm(getErrorState(hwFailure, 11));
+		mBatteryController->setInternalFailureAlarm(getErrorState(hwFailure, 9));
+		mBatteryController->setElectricBoardAlarm(getErrorState(hwFailure, 8));
+		mBatteryController->setElectricBoardAlarm(getErrorState(hwFailure, 8));
+		mBatteryController->setBatteryTemperatureSensorAlarm(getErrorState(hwFailure, 7));
+		mBatteryController->setAirTemperatureSensorAlarm(getErrorState(hwFailure, 6));
+		mBatteryController->setStateOfHealthAlarm(getErrorState(hwFailure, 6));
+		mBatteryController->setLeak1TripAlarm(getErrorState(hwFailure, 4));
+		mBatteryController->setLeak2TripAlarm(getErrorState(hwFailure, 3));
+		mBatteryController->setUnknownAlarm(getAlarmState(hwFailure | opFailure, warning, 0));
+//		mBatteryController->setStsRegSummary(registers[0]);
+//		mBatteryController->setStsRegHardwareFailure(registers[1]);
+//		mBatteryController->setStsRegOperationalFailure(registers[2]);
+//		mBatteryController->setStsRegWarning(registers[3]);
+		mState = Measurements;
 		break;
-	case CheckSetup:
-		Q_ASSERT(registers.size() == 2);
-		mApplication = registers[0];
-		mState =  Acquisition;
+	}
+	case Measurements:
+		mBatteryController->setSOC(registers[0] / 100.0);
+		mBatteryController->setSOCAmpHrs(static_cast<qint16>(registers[1]) / 10.0);
+		mBatteryController->setBattVolts(registers[2] / 10.0);
+		mBatteryController->setBattAmps(-static_cast<qint16>(-registers[3]) / 10.0);
+		mBatteryController->setBattTemp(static_cast<qint16>(registers[4]) / 10.0);
+		mBatteryController->setAirTemp(static_cast<qint16>(registers[5]) / 10.0);
+		mState = OperationalMode;
 		break;
-	case CheckMeasurementMode:
-		Q_ASSERT(registers.size() == 1);
-		mState = registers[0] == 0x01 ? Acquisition : SetMeasurementMode;
+	case OperationalMode:
+		// QLOG_WARN() << __FUNCTION__ << "opmode:" << registers[0];
+		mUpdatingController = true;
+		mBatteryController->setOperationalMode(registers[0]);
+		mUpdatingController = false;
+		mState = Health;
 		break;
-	case Acquisition:
-		processAcquisitionData(registers);
-		++mCommandIndex;
+	case Health:
+		mBatteryController->setHealthIndication(registers[0]);
+		mBatteryController->setBussVolts(registers[1] / 10.0);
+		mBatteryController->setState(registers[2]);
+		mBatteryController->setConnectionState(Connected);
+		mState = Wait;
 		break;
 	case Wait:
-		mState = Acquisition;
+		mState = DeviceState;
 		break;
 	default:
 		QLOG_ERROR() << "Unknown updater state" << mState;
-		mState = mSettings == 0 ? DeviceId : Acquisition;
+		mState = mSettings == 0 ? Init : Start;
 		break;
 	}
 	mTimeoutCount = 0;
 	startNextAction();
 }
 
-void BatteryControllerUpdater::onWriteCompleted(int function, quint8 addr,
+void BatteryControllerUpdater::onWriteCompleted(int function, quint8 slaveAddress,
 										  quint16 address, quint16 value)
 {
-	if (addr != mBatteryController->DeviceAddress())
+	if (slaveAddress != mBatteryController->DeviceAddress())
 		return;
+	QLOG_WARN() << __FUNCTION__ << slaveAddress << address << value;
 	Q_UNUSED(function)
 	Q_UNUSED(address)
 	Q_UNUSED(value)
 	switch (mState) {
-	case SetApplication:
-		Q_ASSERT(function == ModbusRtu::WriteSingleRegister);
-		Q_ASSERT(address == RegApplication);
-		mState = Acquisition;
-		break;
-	case SetMeasuringSystem:
-		Q_ASSERT(function == ModbusRtu::WriteSingleRegister);
-		Q_ASSERT(address == RegMeasurementSystem);
-		mState = Acquisition;
-		break;
-	case SetMeasurementMode:
-		mState = Acquisition;
-		break;
 	case SetAddress:
-		QLOG_WARN() << "Slave Address Changed";
-		mState = Serial;
+		mTmpState = Init;
+		break;
+	case ClearStatus:
+		mBatteryController->setClearStatusRegisterFlags(0);
+		break;
+	case SetOperationalMode:
+		// This is a workaround: the ZBM takes some time to change the
+		// operational mode. By setting the mode to wait, we ensure that the
+		// operational mode will not be retrieved for 5 seconds, preventing the
+		// displayed to switch back temporarily to the previous value.
+		mTmpState = Wait;
+		break;
+	case RequestDelayedMaintenance:
+		mBatteryController->setRequestDelayedSelfMaintenance(0);
+		break;
+	case RequestImmediateMaintenance:
+		mBatteryController->setRequestImmediateSelfMaintenance(0);
 		break;
 	default:
-		mState = 
-			Acquisition;
+		mState = DeviceState;
 		break;
 	}
+	mState = mTmpState;
+	mTmpState = Wait;
 	mTimeoutCount = 0;
 	startNextAction();
 }
@@ -216,73 +242,74 @@ void BatteryControllerUpdater::onWaitFinished()
 {
 	switch (mState) {
 	case Wait:
-		mStopwatch.restart();
-		mState = Acquisition;
+		mStopwatch.start();
+		mState = Start;
 		break;
 	case WaitOnConnectionLost:
-		mState = DeviceId;
+		mState = Init;
 		break;
 	default:
-		mState = 
-			Acquisition;
+		mState = Start;
 		break;
 	}
 	startNextAction();
 }
 
-void BatteryControllerUpdater::onUpdateSettings()
+void BatteryControllerUpdater::onClearStatusRegisterFlagsChanged()
 {
+	if (mBatteryController->ClearStatusRegisterFlags() != 0)
+		mTmpState = ClearStatus;
+}
+
+void BatteryControllerUpdater::onOperationalModeChanged()
+{
+	QLOG_WARN() << __FUNCTION__ << mBatteryController->operationalMode() << mUpdatingController;
+	if (mUpdatingController)
+		return;
+	mTmpState = SetOperationalMode;
+}
+
+void BatteryControllerUpdater::onRequestDelayedSelfMaintenanceChanged()
+{
+	if (mBatteryController->RequestDelayedSelfMaintenance() != 0)
+		mTmpState = RequestDelayedMaintenance;
+}
+
+void BatteryControllerUpdater::onRequestImmediateSelfMaintenanceChanged()
+{
+	if (mBatteryController->RequestImmediateSelfMaintenance())
+		mTmpState = RequestImmediateMaintenance;
 }
 
 void BatteryControllerUpdater::startNextAction()
 {
-
-	if (mSetupRequested) {
-		mSetupRequested = false;
-			mState = CheckSetup;
+	// QLOG_WARN() << __FUNCTION__ << mState << mTmpState;
+	if (mTmpState != Wait) {
+		State tmp = mTmpState;
+		mTmpState = mState;
+		mState = tmp;
 	}
 	switch (mState) {
-	case DeviceId:
-		mBatteryController->setConnectionState(Searched); 
-		readRegisters(RegDevice, 1);
-		break;
-	case VersionCode:
-		readRegisters(RegEm24VersionCode, 1);
-		break;
 	case Serial:
-		readRegisters(RegSerial, 2);
+		readRegisters(RegSerial, 1);
 		break;
-	case FirmwareVersion:
-		readRegisters(RegFirmwareVersion, 2);
+	case DeviceState:
+		readRegisters(RegStatusSummary, 4);
 		break;
-	case CheckSetup:
-		readRegisters(RegApplication, 2);
+	case OperationalMode:
+		readRegisters(RegOperationalMode, 1);
 		break;
-	case SetApplication:
-		//writeRegister(RegApplication, ApplicationH);
+	case Measurements:
+		readRegisters(RegStateOfCharge, 6);
 		break;
-	case WaitForStart:
-		QLOG_INFO() << "serial == " << mBatteryController->serial();
-		mSettings = new BatteryControllerSettings(mBatteryController->deviceType(),
-											mBatteryController->serial(),
-											mBatteryController);
-		mBatteryController->setConnectionState(Detected);
-		mSetupRequested = true;
-
-		startNextAction();
-		
-		break;
-	case Acquisition:
-		mCommands = ZBMCommands;
-		mCommandCount = ZBMCommandCount;
-		startNextAcquisition();
+	case Health:
+		readRegisters(RegStateOfHealth, 3);
 		break;
 	case Wait:
 	{
-		int sleep = mStopwatch.elapsed();
-		sleep = 250 - sleep;
-		if (sleep > 50) {
-			mAcquisitionTimer->setInterval(/*sleep*/5000);
+		int dt = MeasurementWaitInterval - mStopwatch.elapsed();
+		if (dt > 20) {
+			mAcquisitionTimer->setInterval(dt);
 			mAcquisitionTimer->start();
 		} else {
 			onWaitFinished();
@@ -294,48 +321,26 @@ void BatteryControllerUpdater::startNextAction()
 		mAcquisitionTimer->start();
 		break;
 	case SetAddress:
-		//writeRegister(0x2000, 2);
+		writeRegister(RegDeviceAddress, mBatteryController->DeviceAddress());
+		break;
+	case ClearStatus:
+		writeRegister(RegClearStatusFlags, mBatteryController->ClearStatusRegisterFlags());
+		break;
+	case SetOperationalMode:
+		writeRegister(RegEnterRunCommand, mBatteryController->operationalMode());
+		break;
+	case RequestDelayedMaintenance:
+		writeRegister(RegDelayedSelfMaintenance, mBatteryController->RequestDelayedSelfMaintenance());
+		break;
+	case RequestImmediateMaintenance:
+		writeRegister(RegImmediateSelfMaintenance, mBatteryController->RequestImmediateSelfMaintenance());
 		break;
 	default:
 		QLOG_ERROR() << "Invalid state while starting new action" << mState;
-		mState = Acquisition;
+		mState = Start;
 		startNextAction();
 		break;
 	}
-}
-
-void BatteryControllerUpdater::startNextAcquisition()
-{
-	const CompositeCommand *cmd = 0;
-
-	for (;;) {
-		if (mCommandIndex < mCommandCount)
-			cmd = &mCommands[mCommandIndex];
-		if (cmd !=0 && (cmd->inverval == 0 || mAcquisitionIndex == cmd->inverval)) {
-			break;
-		} else {
-			++mCommandIndex;
-			if (mCommandIndex >= mCommandCount) {
-				mState = Wait;
-				mCommandIndex = 0;
-				++mAcquisitionIndex;
-				if (mAcquisitionIndex == MaxAcquisitionIndex) {
-					mAcquisitionIndex = 0;
-					mBatteryController->setConnectionState(Connected);
-				}
-				startNextAction();
-				return;
-			}
-		}
-	}
-	int maxOffset = 0;
-	for (int i=0; i<MaxRegCount; ++i) {
-		const RegisterCommand &ra = cmd->actions[i];
-		if (ra.action == None)
-			break;
-		maxOffset = qMax(maxOffset, ra.regOffset);
-	}
-	readRegisters(cmd->reg, maxOffset + 2);
 }
 
 void BatteryControllerUpdater::readRegisters(quint16 startReg, quint16 count)
@@ -346,88 +351,7 @@ void BatteryControllerUpdater::readRegisters(quint16 startReg, quint16 count)
 
 void BatteryControllerUpdater::writeRegister(quint16 reg, quint16 value)
 {
+	QLOG_WARN() << __FUNCTION__ << reg << value;
 	mModbus->writeRegister(ModbusRtu::WriteSingleRegister,
 						   mBatteryController->DeviceAddress(), reg, value);
 }
-
-void BatteryControllerUpdater::processAcquisitionData(const QList<quint16> &registers)
-{
-	QString stemp;
-
-	const CompositeCommand &cmd = mCommands[mCommandIndex];
-	for (int i=0; i<MaxRegCount; ++i) {
-		const RegisterCommand &ra = cmd.actions[i];
-		if (ra.action == None)
-			break;
-
-			{
-			switch (ra.action) {
-			case BattVolts:
-				QLOG_INFO() << "BattVolts: " << registers[ra.regOffset];
-				mBatteryController->setBattVolts(registers[ra.regOffset]);
-				break;
-			case BussVolts:
-				QLOG_INFO() << "BussVolts: " << registers[ra.regOffset];
-				mBatteryController->setBussVolts(registers[ra.regOffset]);
-				break;
-			case BattAmps:
-				stemp =  QString::number((short) registers[ra.regOffset],10);
-				QLOG_INFO() << "BattAmps: " << stemp;
-				mBatteryController->setBattAmps(stemp.toInt());
-				break;
-			case BussAmps:
-				stemp = QString::number((short) registers[ra.regOffset],10);
-				QLOG_INFO() << "BussAmps: " << registers[ra.regOffset];
-				mBatteryController->setBussAmps(stemp.toInt());
-				break;
-			case BattTemp:
-				QLOG_INFO() << "BattTemp: " << registers[ra.regOffset];
-				mBatteryController->setBattTemp(static_cast<qint16>(registers[ra.regOffset]));
-				break;
-			case AirTemp:
-				QLOG_INFO() << "AirTemp: " << registers[ra.regOffset];
-				mBatteryController->setAirTemp(static_cast<qint16>(registers[ra.regOffset]));
-				break;
-			case SOC:
-				QLOG_INFO() << "SOC: " << registers[ra.regOffset];
-				mBatteryController->setSOC(registers[ra.regOffset]);
-				break;	
-			case StsRegSummary:
-				QLOG_INFO() << "StsRegSummary: " << registers[ra.regOffset];
-				mBatteryController->setStsRegSummary(registers[ra.regOffset]);
-				break;	
-			case StsRegHardwareFailure:
-				QLOG_INFO() << "StsRegHardwareFailure: " << registers[ra.regOffset];
-				mBatteryController->setStsRegHardwareFailure(registers[ra.regOffset]);
-				break;
-			case StsRegOperationalFailure:
-				QLOG_INFO() << "StsRegOperationalFailure: " << registers[ra.regOffset];
-				mBatteryController->setStsRegOperationalFailure(registers[ra.regOffset]);
-				break;	
-			case StsRegWarning:
-				QLOG_INFO() << "StsRegWarning: " << registers[ra.regOffset];
-				mBatteryController->setStsRegWarning(registers[ra.regOffset]);
-				break;	
-			case StsRegOperationalMode:
-				QLOG_INFO() << "StsRegOperationalMode: " << registers[ra.regOffset];
-				mBatteryController->setStsRegOperationalMode(registers[ra.regOffset]);
-				break;
-			case SOC_AmpHrs:
-				QLOG_INFO() << "SOC_AmpHrs: " << registers[ra.regOffset];
-				mBatteryController->setSOCAmpHrs(static_cast<qint16>(registers[ra.regOffset]));
-				break;			
-			case HealthIndication:
-				QLOG_INFO() << "HealthIndication: " << registers[ra.regOffset];
-				mBatteryController->setHealthIndication(registers[ra.regOffset]);
-				break;	
-			case ZBMState:
-				QLOG_INFO() << "ZBMState: " << registers[ra.regOffset];
-				mBatteryController->setState(registers[ra.regOffset]);
-				break;
-			default:
-				break;
-			}
-		}
-	}
-}
-

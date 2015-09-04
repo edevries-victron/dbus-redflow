@@ -56,7 +56,7 @@ private:
 
 	DbusServiceMonitor *mServiceMonitor;
 	ModbusRtu *mModbus;
-	QList<BatteryController *> mBatteryController;
+	QList<BatteryController *> mBatteryControllers;
 	Settings *mSettings;
 	QList<ControlLoop *> mControlLoops;
 };

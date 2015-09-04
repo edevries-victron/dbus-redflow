@@ -22,9 +22,7 @@ class BatteryControllerBridge : public DBusBridge
 public:
 	explicit BatteryControllerBridge(BatteryController *BatteryController,
 							BatteryControllerSettings *emSettings,
-							Settings *settings,
-							QObject *parent = 0,
-							BatteryControllerUpdater *BatteryControllerUpdater = 0);
+							QObject *parent = 0);
 public slots:
 	void produceBatteryInfo(BatteryController *bc, const QString &path);
 
