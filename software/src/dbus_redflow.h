@@ -6,7 +6,8 @@
 
 class BatteryController;
 class BatteryControllerUpdater;
-class ControlLoop;
+class BatterySummary;
+class BmsService;
 class DbusServiceMonitor;
 class ModbusRtu;
 class Settings;
@@ -45,12 +46,6 @@ private slots:
 
 	void onSerialEvent(const char *description);
 
-	void onServicesChanged();
-
-	void onServiceTypeChanged();
-
-	void onControlLoopEnabledChanged();
-
 private:
 	void updateControlLoop();
 
@@ -58,7 +53,8 @@ private:
 	ModbusRtu *mModbus;
 	QList<BatteryController *> mBatteryControllers;
 	Settings *mSettings;
-	QList<ControlLoop *> mControlLoops;
+	BatterySummary *mSummary;
+	BmsService *mBmsService;
 };
 
 #endif // DBUS_REDFLOW_H

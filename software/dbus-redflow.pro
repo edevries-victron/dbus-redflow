@@ -76,7 +76,9 @@ SOURCES += \
     src/battery_controller_updater.cpp \
     src/battery_controller_bridge.cpp \
     src/batteryController.cpp \
-    src/dbus_redflow.cpp
+    src/dbus_redflow.cpp \
+    src/battery_summary.cpp \
+    src/bms_service.cpp
 
 HEADERS += \
     ext/velib/src/qt/v_busitem_adaptor.h \
@@ -101,7 +103,9 @@ HEADERS += \
     src/battery_controller_settings_bridge.h \
     src/battery_controller_bridge.h \
     src/batteryController.h \
-    src/battery_controller_updater.h
+    src/battery_controller_updater.h \
+    src/battery_summary.h \
+    src/bms_service.h
 
 DISTFILES += \
     src/service/run \

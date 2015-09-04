@@ -3,15 +3,20 @@
 #include "battery_controller_settings.h"
 #include "battery_controller_settings_bridge.h"
 #include "battery_controller_updater.h"
+#include "battery_summary.h"
 #include "dbus_redflow.h"
 #include "dbus_service_monitor.h"
 #include "settings.h"
 #include "settings_bridge.h"
 #include "batteryController.h"
+#include "battery_summary.h"
+#include "bms_service.h"
 
 DBusRedflow::DBusRedflow(const QString &portName, QObject *parent):
 	QObject(parent),
-	mModbus(new ModbusRtu(portName, 19200, this))
+	mModbus(new ModbusRtu(portName, 19200, this)),
+	mSummary(new BatterySummary(this)),
+	mBmsService(new BmsService(this))
 {
 	qRegisterMetaType<ConnectionState>();
 	qRegisterMetaType<QList<quint16> >();
@@ -55,12 +60,10 @@ void DBusRedflow::onDeviceFound()
 				<< '@' << m->portName();
 	BatteryControllerSettings *settings = mu->settings();
 	settings->setParent(m);
-	connect(settings, SIGNAL(serviceTypeChanged()),
-			this, SLOT(onServiceTypeChanged()));
-	BatteryControllerSettingsBridge *b =
-			new BatteryControllerSettingsBridge(settings, settings);
-	connect(b, SIGNAL(initialized()),
-			this, SLOT(onDeviceSettingsInitialized()));
+//	BatteryControllerSettingsBridge *b =
+//			new BatteryControllerSettingsBridge(settings, settings);
+//	connect(b, SIGNAL(initialized()),
+//			this, SLOT(onDeviceSettingsInitialized()));
 	mSettings->registerDevice(m->serial());
 }
 
@@ -73,33 +76,18 @@ void DBusRedflow::onDeviceInitialized()
 	BatteryController *m = static_cast<BatteryController *>(sender());
 	BatteryControllerUpdater *mu = m->findChild<BatteryControllerUpdater *>();
 	new BatteryControllerBridge(m, mu->settings(), m);
-}
-
-void DBusRedflow::onServiceTypeChanged()
-{
-	BatteryControllerSettings *s = static_cast<BatteryControllerSettings *>(sender());
-	BatteryController *m = static_cast<BatteryController *>(s->parent());
-	BatteryControllerBridge *bridge = m->findChild<BatteryControllerBridge *>();
-
-	if (bridge == 0) {
-		// Settings have not been fully initialized yet. We need to have all
-		// settings before creating the D-Bus service.
-		return;
-	}
-	// Deleting and recreating the bridge will force recreation of the D-Bus
-	// service with another name.
-	delete bridge;
-	new BatteryControllerBridge(m, s, m);
-}
-
-void DBusRedflow::onControlLoopEnabledChanged()
-{
-
+	mSummary->addBattery(m);
+	mBmsService->addBattery(m);
 }
 
 void DBusRedflow::onConnectionLost()
 {
-
+	foreach (BatteryController *c, mBatteryControllers) {
+		if (c->connectionState() != Disconnected)
+			return;
+	}
+	QLOG_ERROR() << "No more batteries connected. Application will shut down.";
+	exit(1);
 }
 
 void DBusRedflow::onSerialEvent(const char *description)
@@ -108,9 +96,3 @@ void DBusRedflow::onSerialEvent(const char *description)
 				 << "Application will shut down.";
 	exit(1);
 }
-
-void DBusRedflow::onServicesChanged()
-{
-
-}
-
