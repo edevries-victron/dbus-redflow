@@ -10,6 +10,7 @@ class ControlLoop;
 class DbusServiceMonitor;
 class ModbusRtu;
 class Settings;
+class VeQItem;
 
 /*!
  * Main object which ties everything together.
@@ -27,7 +28,7 @@ class DBusRedflow : public QObject
 {
 	Q_OBJECT
 public:
-	DBusRedflow(const QString &portName, QObject *parent = 0);
+	DBusRedflow(const QString &portName, VeQItem *root, QObject *parent = 0);
 
 signals:
 	void connectionLost();

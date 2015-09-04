@@ -35,7 +35,7 @@ unix {
     target.path = $${DESTDIR}$${bindir}
 }
 
-QT += core dbus
+QT += core dbus xml
 QT -= gui
 
 TARGET = dbus-redflow
@@ -45,6 +45,7 @@ CONFIG -= app_bundle
 TEMPLATE = app
 
 include(ext/qslog/QsLog.pri)
+include(ext/velib/src/qt/ve_qitems.pri)
 
 INCLUDEPATH += \
     ext/qslog \
@@ -53,53 +54,53 @@ INCLUDEPATH += \
     src
 
 SOURCES += \
-    ext/velib/src/qt/v_busitem.cpp \
-    ext/velib/src/qt/v_busitems.cpp \
-    ext/velib/src/qt/v_busitem_adaptor.cpp \
-    ext/velib/src/qt/v_busitem_private_cons.cpp \
-    ext/velib/src/qt/v_busitem_private_prod.cpp \
-    ext/velib/src/qt/v_busitem_proxy.cpp \
+#    ext/velib/src/qt/v_busitem.cpp \
+#    ext/velib/src/qt/v_busitems.cpp \
+#    ext/velib/src/qt/v_busitem_adaptor.cpp \
+#    ext/velib/src/qt/v_busitem_private_cons.cpp \
+#    ext/velib/src/qt/v_busitem_private_prod.cpp \
+#    ext/velib/src/qt/v_busitem_proxy.cpp \
     ext/velib/src/plt/serial.c \
     ext/velib/src/plt/posix_serial.c \
     ext/velib/src/plt/posix_ctx.c \
     ext/velib/src/types/ve_variant.c \
     src/main.cpp \
-    src/dbus_bridge.cpp \
+#    src/dbus_bridge.cpp \
     src/modbus_rtu.cpp \
-    src/v_bus_node.cpp \
+#    src/v_bus_node.cpp \
     src/crc16.cpp \
     src/settings.cpp \
-    src/settings_bridge.cpp \
-    src/dbus_service_monitor.cpp \
+#    src/settings_bridge.cpp \
+#    src/dbus_service_monitor.cpp \
     src/battery_controller_settings.cpp \
-    src/battery_controller_settings_bridge.cpp \
+#    src/battery_controller_settings_bridge.cpp \
     src/battery_controller_updater.cpp \
-    src/battery_controller_bridge.cpp \
+#    src/battery_controller_bridge.cpp \
     src/batteryController.cpp \
     src/dbus_redflow.cpp
 
 HEADERS += \
-    ext/velib/src/qt/v_busitem_adaptor.h \
-    ext/velib/src/qt/v_busitem_private_cons.h \
-    ext/velib/src/qt/v_busitem_private_prod.h \
-    ext/velib/src/qt/v_busitem_private.h \
-    ext/velib/src/qt/v_busitem_proxy.h \
-    ext/velib/inc/velib/qt/v_busitem.h \
-    ext/velib/inc/velib/qt/v_busitems.h \
+#    ext/velib/src/qt/v_busitem_adaptor.h \
+#    ext/velib/src/qt/v_busitem_private_cons.h \
+#    ext/velib/src/qt/v_busitem_private_prod.h \
+#    ext/velib/src/qt/v_busitem_private.h \
+#    ext/velib/src/qt/v_busitem_proxy.h \
+#    ext/velib/inc/velib/qt/v_busitem.h \
+#    ext/velib/inc/velib/qt/v_busitems.h \
     ext/velib/inc/velib/platform/serial.h \
-    src/dbus_bridge.h \
+#    src/dbus_bridge.h \
     src/defines.h \
     src/settings.h \
     src/modbus_rtu.h \
-    src/v_bus_node.h \
+#    src/v_bus_node.h \
     src/crc16.h \
-    src/settings_bridge.h \
+#    src/settings_bridge.h \
     src/velib/velib_config_app.h \
-    src/dbus_service_monitor.h \
+#    src/dbus_service_monitor.h \
     src/battery_controller_settings.h \
     src/dbus_redflow.h \
-    src/battery_controller_settings_bridge.h \
-    src/battery_controller_bridge.h \
+#    src/battery_controller_settings_bridge.h \
+#    src/battery_controller_bridge.h \
     src/batteryController.h \
     src/battery_controller_updater.h
 

@@ -8,6 +8,7 @@
 
 class BatteryController;
 class BatteryControllerSettings;
+class VeQItem;
 
 /*!
  * Retrieves data from a Carlo Gavazzi energy meter.
@@ -37,7 +38,7 @@ public:
 	 * between multiple `AcSensorUpdater` objects. The `modbus` object will not
 	 * be deleted in the destructor.
 	 */
-	BatteryControllerUpdater(BatteryController *mBatteryController,
+	BatteryControllerUpdater(int deviceAddress, VeQItem *root,
 							 ModbusRtu *modbus, QObject *parent = 0);
 
 	/*!
@@ -49,7 +50,7 @@ public:
 	 * be changed while retrieval is active. This may lead to reinitialization
 	 * of the updater (and the energy meter itself).
 	 */
-	BatteryControllerSettings *settings();
+	// BatteryControllerSettings *settings();
 
 private slots:
 	void onErrorReceived(int errorType, quint8 addr, int exception);
@@ -94,12 +95,15 @@ private:
 		Start = DeviceState
 	};
 
-	BatteryController *mBatteryController;
+	// BatteryController *mBatteryController;
 	bool mUpdatingController;
-	BatteryControllerSettings *mSettings;
+	// BatteryControllerSettings *mSettings;
 	ModbusRtu *mModbus;
 	QTimer *mAcquisitionTimer;
+	VeQItem *mService;
+	VeQItem *mRoot;
 	int mTimeoutCount;
+	int mDeviceAddress;
 	QElapsedTimer mStopwatch;
 	State mState;
 	State mTmpState;

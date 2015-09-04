@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <velib/qt/v_busitem.h>
 #include <velib/qt/v_busitems.h>
+#include <velib/qt/ve_qitems_dbus.hpp>
 #include "dbus_redflow.h"
 #include "version.h"
 
@@ -21,22 +22,24 @@ void initLogger(QsLogging::Level logLevel)
 	logger.setLoggingLevel(logLevel);
 }
 
-void initDBus(const QString &dbusAddress)
+VeQItem *initDBus(const QString &dbusAddress)
 {
-	VBusItems::setDBusAddress(dbusAddress);
-
-	QLOG_INFO() << "Wait for local settings on DBus... ";
-	VBusItem settings;
-	settings.consume("com.victronenergy.settings", "/Settings/Vrmlogger/Url");
-	for (;;) {
-		QVariant reply = settings.getValue();
-		QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
-		if (reply.isValid())
-			break;
-		usleep(500000);
-		QLOG_INFO() << "Waiting...";
-	}
-	QLOG_INFO() << "Local settings found";
+//	VBusItems::setDBusAddress(dbusAddress);
+	VeQItemDbusProducer *dbusProducer = new VeQItemDbusProducer(VeQItems::getRoot(), "dbus", false);
+	dbusProducer->open(dbusAddress);
+	return dbusProducer->services();
+//	QLOG_INFO() << "Wait for local settings on DBus... ";
+//	VBusItem settings;
+//	settings.consume("com.victronenergy.settings", "/Settings/Vrmlogger/Url");
+//	for (;;) {
+//		QVariant reply = settings.getValue();
+//		QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+//		if (reply.isValid())
+//			break;
+//		usleep(500000);
+//		QLOG_INFO() << "Waiting...";
+//	}
+//	QLOG_INFO() << "Local settings found";
 }
 
 extern "C"
@@ -108,9 +111,9 @@ int main(int argc, char *argv[])
 		QLOG_INFO() << "Connecting to" << portName;
 	}
 
-	initDBus(dbusAddress);
+	VeQItem *root = initDBus(dbusAddress);
 
-	DBusRedflow a(portName);
+	DBusRedflow a(portName, root);
 
 	app.connect(&a, SIGNAL(connectionLost()), &app, SLOT(quit()));
 
