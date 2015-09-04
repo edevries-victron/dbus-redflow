@@ -1,11 +1,11 @@
 #include <QsLog.h>
 #include "batteryController.h"
 
-BatteryController::BatteryController(const QString &portName, int deviceAddress, QObject *parent) :
+BatteryController::BatteryController(const QString &portName, int deviceAddress,
+									 QObject *parent) :
 	QObject(parent),
 	mConnectionState(Disconnected),
 	mDeviceType(0),
-	mDeviceSubType(0),
 	mErrorCode(0),
 	mFirmwareVersion(0),
 	mPortName(portName),
@@ -15,23 +15,20 @@ BatteryController::BatteryController(const QString &portName, int deviceAddress,
 	mBussAmps(0),
 	mBattTemp(0),
 	mAirTemp(0),
-	mBattPower(0),
 	mSOC(0),
 	mStsRegSummary(0),
 	mStsRegHardwareFailure(0),
 	mStsRegOperationalFailure(0),
 	mStsRegWarning(0),
-	mStsRegOperationalMode(0),
+	mOperationalMode(0),
 	mSOCAmpHrs(0),
 	mHealthIndication(0),
 	mState(0),
 	mDeviceAddress(deviceAddress),
 	mClearStatusRegisterFlags(0),
 	mRequestDelayedSelfMaintenance(0),
-	mSetOperationalMode(0),
 	mRequestImmediateSelfMaintenance(0)
 {
-	
 }
 
 ConnectionState BatteryController::connectionState() const
@@ -60,35 +57,9 @@ void BatteryController::setDeviceType(int t)
 	emit deviceTypeChanged();
 }
 
-int BatteryController::deviceSubType() const
-{
-	return mDeviceSubType;
-}
-
-void BatteryController::setDeviceSubType(int t)
-{
-	if (mDeviceSubType == t)
-		return;
-	mDeviceSubType = t;
-	emit deviceSubTypeChanged();
-}
-
 QString BatteryController::productName() const
 {
-	return "ZBM";
-}
-
-int BatteryController::errorCode() const
-{
-	return mErrorCode;
-}
-
-void BatteryController::setErrorCode(int code)
-{
-	if (mErrorCode == code)
-		return;
-	mErrorCode = code;
-	emit errorCodeChanged();
+	return "ZBM " + serial();
 }
 
 QString BatteryController::portName() const
@@ -107,6 +78,7 @@ void BatteryController::setSerial(const QString &s)
 		return;
 	mSerial = s;
 	emit serialChanged();
+	emit productName();
 }
 
 int BatteryController::firmwareVersion() const
@@ -122,12 +94,12 @@ void BatteryController::setFirmwareVersion(int v)
 	emit firmwareVersionChanged();
 }
 
-int BatteryController::BattVolts() const
+double BatteryController::BattVolts() const
 {
-	return mBattVolts /10;
+	return mBattVolts;
 }
 
-void BatteryController::setBattVolts(int t)
+void BatteryController::setBattVolts(double t)
 {
 	if (mBattVolts == t)
 		return;
@@ -136,12 +108,12 @@ void BatteryController::setBattVolts(int t)
 	emit battPowerChanged();
 }
 
-int BatteryController::BussVolts() const
+double BatteryController::BussVolts() const
 {
-	return mBussVolts /10;
+	return mBussVolts;
 }
 
-void BatteryController::setBussVolts(int t)
+void BatteryController::setBussVolts(double t)
 {
 	if (mBussVolts == t)
 		return;
@@ -151,10 +123,10 @@ void BatteryController::setBussVolts(int t)
 
 double BatteryController::BattAmps() const
 {
-	return (double) (((float)mBattAmps)/10)*(-1) ;
+	return mBattAmps;
 }
 
-void BatteryController::setBattAmps(int t)
+void BatteryController::setBattAmps(double t)
 {
 	if (mBattAmps == t)
 		return;
@@ -165,10 +137,10 @@ void BatteryController::setBattAmps(int t)
 
 double BatteryController::BussAmps() const
 {
-	return (double)  (((float)mBussAmps)/10)*(-1);
+	return mBussAmps;
 }
 
-void BatteryController::setBussAmps(int t)
+void BatteryController::setBussAmps(double t)
 {
 	if (mBussAmps == t)
 		return;
@@ -178,10 +150,10 @@ void BatteryController::setBussAmps(int t)
 
 double BatteryController::BattTemp() const
 {
-	return (double) (((float) mBattTemp) / 10);
+	return mBattTemp;
 }
 
-void BatteryController::setBattTemp(int t)
+void BatteryController::setBattTemp(double t)
 {
 	if (mBattTemp == t)
 		return;
@@ -189,25 +161,25 @@ void BatteryController::setBattTemp(int t)
 	emit battTempChanged();
 }
 
-int BatteryController::AirTemp() const
+double BatteryController::AirTemp() const
 {
 	return mAirTemp;
 }
 
-void BatteryController::setAirTemp(int t)
+void BatteryController::setAirTemp(double t)
 {
 	if (mAirTemp == t)
 		return;
 	mAirTemp = t;
-	emit battTempChanged();	// since every emit calls the same publish function
+	emit airTempChanged();
 }
 
-int BatteryController::SOC() const
+double BatteryController::SOC() const
 {
-	return mSOC / 100;
+	return mSOC;
 }
 
-void BatteryController::setSOC(int t)
+void BatteryController::setSOC(double t)
 {
 	if (mSOC == t)
 		return;
@@ -215,17 +187,9 @@ void BatteryController::setSOC(int t)
 	emit socChanged();
 }
 
-int BatteryController::BattPower() const
+double BatteryController::BattPower() const
 {
-	return (mBattAmps /10) * (mBattVolts / 10) * (-1);
-}
-
-void BatteryController::setBattPower(int t)
-{
-	if (mBattPower == t)
-		return;
-	mBattPower = t;
-	// this function is never called since we do not read power but calculate it 
+	return mBattAmps * mBattVolts;
 }
 
 int BatteryController::StsRegSummary() const
@@ -238,9 +202,8 @@ void BatteryController::setStsRegSummary(int t)
 	if (mStsRegSummary == t)
 		return;
 	mStsRegSummary = t;
-	emit stsRegSummaryChanged();	 
+	emit stsRegSummaryChanged();
 }
-
 
 int BatteryController::StsRegHardwareFailure() const
 {
@@ -252,9 +215,8 @@ void BatteryController::setStsRegHardwareFailure(int t)
 	if (mStsRegHardwareFailure == t)
 		return;
 	mStsRegHardwareFailure = t;
-	emit stsRegHardwareFailureChanged();	 
+	emit stsRegHardwareFailureChanged();
 }
-
 
 int BatteryController::StsRegOperationalFailure() const
 {
@@ -266,9 +228,8 @@ void BatteryController::setStsRegOperationalFailure(int t)
 	if (mStsRegOperationalFailure == t)
 		return;
 	mStsRegOperationalFailure = t;
-	emit stsRegOperationalFailureChanged();	 
+	emit stsRegOperationalFailureChanged();
 }
-
 
 int BatteryController::StsRegWarning() const
 {
@@ -280,51 +241,47 @@ void BatteryController::setStsRegWarning(int t)
 	if (mStsRegWarning == t)
 		return;
 	mStsRegWarning = t;
-	emit stsRegWarningChanged();	 
+	emit stsRegWarningChanged();
 }
 
-
-int BatteryController::StsRegOperationalMode() const
+int BatteryController::operationalMode() const
 {
-	return mStsRegOperationalMode;
+	return mOperationalMode;
 }
 
-void BatteryController::setStsRegOperationalMode(int t)
+void BatteryController::setOperationalMode(int t)
 {
-	if (mStsRegOperationalMode == t)
+	if (mOperationalMode == t)
 		return;
-	mStsRegOperationalMode = t;
-	emit stsRegOperationalModeChanged();	 
+	mOperationalMode = t;
+	emit operationalModeChanged();
 }
 
-
-int BatteryController::SOCAmpHrs() const
+double BatteryController::SOCAmpHrs() const
 {
 	return mSOCAmpHrs;
 }
 
-void BatteryController::setSOCAmpHrs(int t)
+void BatteryController::setSOCAmpHrs(double t)
 {
 	if (mSOCAmpHrs == t)
 		return;
 	mSOCAmpHrs = t;
-	emit socAmpHrsChanged();	 
+	emit socAmpHrsChanged();
 }
 
-
-int BatteryController::HealthIndication() const
+double BatteryController::HealthIndication() const
 {
 	return mHealthIndication;
 }
 
-void BatteryController::setHealthIndication(int t)
+void BatteryController::setHealthIndication(double t)
 {
 	if (mHealthIndication == t)
 		return;
 	mHealthIndication = t;
-	emit healthIndicationChanged();	 
+	emit healthIndicationChanged();
 }
-
 
 int BatteryController::State() const
 {
@@ -336,9 +293,8 @@ void BatteryController::setState(int t)
 	if (mState == t)
 		return;
 	mState = t;
-	emit stateChanged();	 
+	emit stateChanged();
 }
-
 
 int BatteryController::DeviceAddress() const
 {
@@ -350,7 +306,7 @@ void BatteryController::setDeviceAddress(int t)
 	if (mDeviceAddress == t)
 		return;
 	mDeviceAddress = t;
-	emit deviceAddressChanged();	 
+	emit deviceAddressChanged();
 }
 
 int BatteryController::ClearStatusRegisterFlags() const
@@ -363,7 +319,7 @@ void BatteryController::setClearStatusRegisterFlags(int t)
 	if (mClearStatusRegisterFlags == t)
 		return;
 	mClearStatusRegisterFlags = t;
-	emit clearStatusRegisterFlagsChanged();	 
+	emit clearStatusRegisterFlagsChanged();
 }
 
 int BatteryController::RequestDelayedSelfMaintenance() const
@@ -373,25 +329,10 @@ int BatteryController::RequestDelayedSelfMaintenance() const
 
 void BatteryController::setRequestDelayedSelfMaintenance(int t)
 {
-QLOG_INFO() << "DELAYED STRIP";
 	if (mRequestDelayedSelfMaintenance == t)
 		return;
 	mRequestDelayedSelfMaintenance = t;
-	emit requestDelayedSelfMaintenanceChanged();	 
-}
-
-int BatteryController::SetOperationalMode() const
-{
-	return mSetOperationalMode;
-}
-
-void BatteryController::setSetOperationalMode(int t)
-{
-QLOG_INFO() << "SETSET";
-	if (mSetOperationalMode == t)
-		return;
-	mSetOperationalMode = t;
-	emit setOperationalModeChanged();	 
+	emit requestDelayedSelfMaintenanceChanged();
 }
 
 int BatteryController::RequestImmediateSelfMaintenance() const
@@ -401,9 +342,216 @@ int BatteryController::RequestImmediateSelfMaintenance() const
 
 void BatteryController::setRequestImmediateSelfMaintenance(int t)
 {
-QLOG_INFO() << "IMMEDIATE STRIP";
 	if (mRequestImmediateSelfMaintenance == t)
 		return;
 	mRequestImmediateSelfMaintenance = t;
-	emit requestImmediateSelfMaintenanceChanged();	 
+	emit requestImmediateSelfMaintenanceChanged();
+}
+
+int BatteryController::maintenanceAlarm() const
+{
+	return mMaintenanceAlarm;
+}
+
+void BatteryController::setMaintenanceAlarm(int v)
+{
+	if (mMaintenanceAlarm == v)
+		return;
+	mMaintenanceAlarm = v;
+	emit maintenanceAlarmChanged();
+}
+
+int BatteryController::maintenanceActiveAlarm() const
+{
+	return mMaintenanceActiveAlarm;
+}
+
+void BatteryController::setMaintenanceActiveAlarm(int v)
+{
+	if (mMaintenanceActiveAlarm == v)
+		return;
+	mMaintenanceActiveAlarm = v;
+	emit maintenanceActiveAlarmChanged();
+}
+
+int BatteryController::overCurrentAlarm() const
+{
+	return mOverCurrentAlarm;
+}
+
+void BatteryController::setOverCurrentAlarm(int v)
+{
+	if (mOverCurrentAlarm == v)
+		return;
+	mOverCurrentAlarm = v;
+	emit overCurrentAlarmChanged();
+}
+
+int BatteryController::overVoltageAlarm() const
+{
+	return mOverVoltageAlarm;
+}
+
+void BatteryController::setOverVoltageAlarm(int v)
+{
+	if (mOverVoltageAlarm == v)
+		return;
+	mOverVoltageAlarm = v;
+	emit overVoltageAlarmChanged();
+}
+
+int BatteryController::batteryTemperatureAlarm() const
+{
+	return mBatteryTemperatureAlarm;
+}
+
+void BatteryController::setBatteryTemperatureAlarm(int v)
+{
+	if (mBatteryTemperatureAlarm == v)
+		return;
+	mBatteryTemperatureAlarm = v;
+	emit batteryTemperatureAlarmChanged();
+}
+
+int BatteryController::zincPumpAlarm() const
+{
+	return mZincPumpAlarm;
+}
+
+void BatteryController::setZincPumpAlarm(int v)
+{
+	if (mZincPumpAlarm == v)
+		return;
+	mZincPumpAlarm = v;
+	emit zincPumpAlarmChanged();
+}
+
+int BatteryController::bromidePumpAlarm() const
+{
+	return mBromidePumpAlarm;
+}
+
+void BatteryController::setBromidePumpAlarm(int v)
+{
+	if (mBromidePumpAlarm == v)
+		return;
+	mBromidePumpAlarm = v;
+	emit bromidePumpAlarmChanged();
+}
+
+int BatteryController::leakSensorsAlarm() const
+{
+	return mLeakSensorsAlarm;
+}
+
+void BatteryController::setLeakSensorsAlarm(int v)
+{
+	if (mLeakSensorsAlarm == v)
+		return;
+	mLeakSensorsAlarm = v;
+	emit leakSensorsAlarmChanged();
+}
+
+int BatteryController::internalFailureAlarm() const
+{
+	return mInternalFailureAlarm;
+}
+
+void BatteryController::setInternalFailureAlarm(int v)
+{
+	if (mInternalFailureAlarm == v)
+		return;
+	mInternalFailureAlarm = v;
+	emit internalFailureAlarmChanged();
+}
+
+int BatteryController::electricBoardAlarm() const
+{
+	return mElectricBoardAlarm;
+}
+
+void BatteryController::setElectricBoardAlarm(int v)
+{
+	if (mElectricBoardAlarm == v)
+		return;
+	mElectricBoardAlarm = v;
+	emit electricBoardAlarmChanged();
+}
+
+int BatteryController::batteryTemperatureSensorAlarm() const
+{
+	return mBatteryTemperatureSensorAlarm;
+}
+
+void BatteryController::setBatteryTemperatureSensorAlarm(int v)
+{
+	if (mBatteryTemperatureSensorAlarm == v)
+		return;
+	mBatteryTemperatureSensorAlarm = v;
+	emit batteryTemperatureSensorAlarmChanged();
+}
+
+int BatteryController::airTemperatureSensorAlarm() const
+{
+	return mAirTemperatureSensorAlarm;
+}
+
+void BatteryController::setAirTemperatureSensorAlarm(int v)
+{
+	if (mAirTemperatureSensorAlarm == v)
+		return;
+	mAirTemperatureSensorAlarm = v;
+	emit airTemperatureSensorAlarmChanged();
+}
+
+int BatteryController::stateOfHealthAlarm() const
+{
+	return mStateOfHealthAlarm;
+}
+
+void BatteryController::setStateOfHealthAlarm(int v)
+{
+	if (mStateOfHealthAlarm == v)
+		return;
+	mStateOfHealthAlarm = v;
+	emit stateOfHealthAlarmChanged();
+}
+
+int BatteryController::leak1TripAlarm() const
+{
+	return mLeak1TripAlarm;
+}
+
+void BatteryController::setLeak1TripAlarm(int v)
+{
+	if (mLeak1TripAlarm == v)
+		return;
+	mLeak1TripAlarm = v;
+	emit leak1TripAlarmChanged();
+}
+
+int BatteryController::leak2TripAlarm() const
+{
+	return mLeak2TripAlarm;
+}
+
+void BatteryController::setLeak2TripAlarm(int v)
+{
+	if (mLeak2TripAlarm == v)
+		return;
+	mLeak2TripAlarm = v;
+	emit leak2TripAlarmChanged();
+}
+
+int BatteryController::unknownAlarm() const
+{
+	return mUnknownAlarm;
+}
+
+void BatteryController::setUnknownAlarm(int v)
+{
+	if (mUnknownAlarm == v)
+		return;
+	mUnknownAlarm = v;
+	emit unknownAlarmChanged();
 }

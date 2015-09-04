@@ -1,8 +1,9 @@
 #include <QsLog.h>
 #include "battery_controller_settings.h"
 
-BatteryControllerSettings::BatteryControllerSettings(int deviceType, const QString &serial,
-										 QObject *parent) :
+BatteryControllerSettings::BatteryControllerSettings(int deviceType,
+													 const QString &serial,
+													 QObject *parent) :
 	QObject(parent),
 	mDeviceType(deviceType),
 	mSerial(serial)
@@ -31,17 +32,3 @@ void BatteryControllerSettings::setCustomName(const QString &n)
 	mCustomName	= n;
 	emit customNameChanged();
 }
-
-QString BatteryControllerSettings::serviceType() const
-{
-	return mServiceType;
-}
-
-void BatteryControllerSettings::setServiceType(const QString &t)
-{
-	if (mServiceType == t)
-		return;
-	mServiceType = t;
-	emit serviceTypeChanged();
-}
-

@@ -8,7 +8,6 @@
 
 class BatteryController;
 class BatteryControllerSettings;
-struct CompositeCommand;
 
 /*!
  * Retrieves data from a Carlo Gavazzi energy meter.
@@ -38,7 +37,8 @@ public:
 	 * between multiple `AcSensorUpdater` objects. The `modbus` object will not
 	 * be deleted in the destructor.
 	 */
-	BatteryControllerUpdater(BatteryController *mBatteryController, ModbusRtu *modbus, QObject *parent = 0);
+	BatteryControllerUpdater(BatteryController *mBatteryController,
+							 ModbusRtu *modbus, QObject *parent = 0);
 
 	/*!
 	 * Returns the settings object.
@@ -51,9 +51,6 @@ public:
 	 */
 	BatteryControllerSettings *settings();
 
-signals:
-	void infoChanged(BatteryController *);
-
 private slots:
 	void onErrorReceived(int errorType, quint8 addr, int exception);
 
@@ -63,68 +60,49 @@ private slots:
 
 	void onWaitFinished();
 
-	void onUpdateSettings();
+	void onClearStatusRegisterFlagsChanged();
+
+	void onOperationalModeChanged();
+
+	void onRequestDelayedSelfMaintenanceChanged();
+
+	void onRequestImmediateSelfMaintenanceChanged();
 
 private:
 	void startNextAction();
-
-	void startNextAcquisition();
 
 	void readRegisters(quint16 startReg, quint16 count);
 
 	void writeRegister(quint16 reg, quint16 value);
 
-	void processAcquisitionData(const QList<quint16> &registers);
-
-	double getDouble(const QList<quint16> &registers, int offset, int size,
-					 double factor);
-
 	enum State {
-		DeviceId,
-		VersionCode,
 		Serial,
-		FirmwareVersion,
-		WaitForStart,
-		CheckSetup,
-		CheckFrontSelector,
-		WaitFrontSelector,
-		SetApplication,
-		SetMeasuringSystem,
-		CheckMeasurementMode,
-		SetMeasurementMode,
-		Acquisition,
+		DeviceState,
+		Measurements,
+		OperationalMode,
+		Health,
 		Wait,
 		WaitOnConnectionLost,
 
-		SetAddress
-	};
+		SetAddress,
+		SetOperationalMode,
+		ClearStatus,
+		RequestDelayedMaintenance,
+		RequestImmediateMaintenance,
 
-	enum Registers {
-		RegDevice = 0x000D,
-		RegApplication = 0x1101,
-		RegMeasurementSystem = 0x1102,
-		RegEm112MeasurementMode = 0x1103,
-		RegSerial = 0x0005,
-		RegEm24VersionCode = 0x0302,
-		RegFirmwareVersion = 0x0003,
-		RegEm24FrontSelector = 0x0304,
-		RegEm112Serial = 0x5000,
+		Init = Serial,
+		Start = DeviceState
 	};
 
 	BatteryController *mBatteryController;
+	bool mUpdatingController;
 	BatteryControllerSettings *mSettings;
 	ModbusRtu *mModbus;
 	QTimer *mAcquisitionTimer;
-	QTimer *mSettingsUpdateTimer;
 	int mTimeoutCount;
-	bool mSetupRequested;
-	int mApplication;
 	QElapsedTimer mStopwatch;
 	State mState;
-	const CompositeCommand *mCommands;
-	int mCommandCount;
-	int mCommandIndex;
-	int mAcquisitionIndex;
+	State mTmpState;
 };
 
 #endif // BATTERY_CONTROLLER_UPDATER_H
