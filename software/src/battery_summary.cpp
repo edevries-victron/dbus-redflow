@@ -1,15 +1,11 @@
 #include <velib/qt/v_busitem.h>
-#include <velib/qt/v_busitems.h>
-#include <QCoreApplication>
 #include "batteryController.h"
 #include "battery_summary.h"
-#include "version.h"
 
 static const QString ServiceName = "com.victronenergy.battery.zbm";
 
 BatterySummary::BatterySummary(QObject *parent):
-	QObject(parent),
-	mConnection(VBusItems::getConnection("zbm")),
+	AbstractMonitorService(ServiceName, parent),
 	mVoltage(0),
 	mCurrent(0),
 	mPower(0),
@@ -18,17 +14,6 @@ BatterySummary::BatterySummary(QObject *parent):
 	// mAlarms(0),
 	mSoc(0)
 {
-	QString processName = QCoreApplication::arguments()[0];
-	produce("/Mgmt/ProcessName", processName);
-	produce("/Mgmt/ProcessVersion", VERSION);
-	produce("/Connection", 1);
-	// produce("/FirmwareVersion", BatteryController->firmwareVersion());
-	produce("/ProductName", "ZBM summary");
-	// produce("/ProductId", VE_PROD_ID_REDFLOW_ZBM2);
-	// produce("/DeviceType", BatteryController->deviceType());
-	// produce("/Mgmt/Connection", portName);
-	// produce("/DeviceInstance", deviceInstance);
-
 	mVoltage = produce("/Dc/0/Voltage", QVariant(), "V", 1);
 	mCurrent = produce("/Dc/0/Current", QVariant(), "A", 1);
 	mPower = produce("/Dc/0/Power", QVariant(), "W", 0);
@@ -36,36 +21,6 @@ BatterySummary::BatterySummary(QObject *parent):
 	mConsumedAmphours = produce("/ConsumedAmphours", QVariant(), "Ah", 1);
 	// mAlarms = produce("/Alarm/Alarms", QVariant());
 	mSoc = produce("/Soc", QVariant(), "%", 0);
-	QTimer *timer = new QTimer(this);
-	connect(timer, SIGNAL(timeout()), this, SLOT(onTimer()));
-	timer->setInterval(1000);
-	timer->start();
-
-	updateValues();
-
-	mConnection.registerService(ServiceName);
-}
-
-BatterySummary::~BatterySummary()
-{
-	mConnection.unregisterService(ServiceName);
-}
-
-void BatterySummary::addBattery(const BatteryController *c)
-{
-	mControllers.append(c);
-	connect(c, SIGNAL(destroyed()), this, SLOT(onDestroyed()));
-	updateValues();
-}
-
-void BatterySummary::onTimer()
-{
-	updateValues();
-}
-
-void BatterySummary::onDestroyed()
-{
-	mControllers.removeOne(static_cast<BatteryController *>(sender()));
 }
 
 void BatterySummary::updateValues()
@@ -78,7 +33,7 @@ void BatterySummary::updateValues()
 	double ampHours = 0;
 	double socTot = 0;
 	int socCount = 0;
-	foreach (const BatteryController *bc, mControllers) {
+	foreach (const BatteryController *bc, controllers()) {
 		if (bc->BattVolts() > 0) {
 			vTot += bc->BattVolts();
 			++vCount;
@@ -90,7 +45,7 @@ void BatterySummary::updateValues()
 		socTot += bc->SOC();
 		++socCount;
 	}
-	int count = mControllers.size();
+	int count = controllers().size();
 	mVoltage->setValue(vCount == 0 ? QVariant() : vTot / vCount);
 	mCurrent->setValue(vCount  == 0 ? QVariant() : iTot);
 	mPower->setValue(vCount == 0 ? QVariant() : pTot);
@@ -98,12 +53,4 @@ void BatterySummary::updateValues()
 	mConsumedAmphours->setValue(count == 0 ? QVariant() : ampHours);
 	// mAlarms->setValue(0);
 	mSoc->setValue(socCount == 0 ? QVariant() : socTot / socCount);
-}
-
-VBusItem *BatterySummary::produce(const QString &path, const QVariant &value,
-								  const QString &unit, int precision)
-{
-	VBusItem *item = new VBusItem(this);
-	item->produce(mConnection, path, "", value, unit, precision);
-	return item;
 }

@@ -3,20 +3,19 @@
 #include "battery_controller_settings.h"
 #include "battery_controller_settings_bridge.h"
 #include "battery_controller_updater.h"
+#include "batteryController.h"
 #include "battery_summary.h"
+#include "bms_service.h"
 #include "dbus_redflow.h"
 #include "dbus_service_monitor.h"
 #include "settings.h"
 #include "settings_bridge.h"
-#include "batteryController.h"
-#include "battery_summary.h"
-#include "bms_service.h"
 
 DBusRedflow::DBusRedflow(const QString &portName, QObject *parent):
 	QObject(parent),
 	mModbus(new ModbusRtu(portName, 19200, this)),
-	mSummary(new BatterySummary(this)),
-	mBmsService(new BmsService(this))
+	mSummary(0),
+	mBmsService(0)
 {
 	qRegisterMetaType<ConnectionState>();
 	qRegisterMetaType<QList<quint16> >();
@@ -64,7 +63,7 @@ void DBusRedflow::onDeviceFound()
 //			new BatteryControllerSettingsBridge(settings, settings);
 //	connect(b, SIGNAL(initialized()),
 //			this, SLOT(onDeviceSettingsInitialized()));
-	mSettings->registerDevice(m->serial());
+//	mSettings->registerDevice(m->serial());
 }
 
 void DBusRedflow::onDeviceSettingsInitialized()
@@ -76,8 +75,23 @@ void DBusRedflow::onDeviceInitialized()
 	BatteryController *m = static_cast<BatteryController *>(sender());
 	BatteryControllerUpdater *mu = m->findChild<BatteryControllerUpdater *>();
 	new BatteryControllerBridge(m, mu->settings(), m);
-	mSummary->addBattery(m);
-	mBmsService->addBattery(m);
+	if (mSummary == 0) {
+		mSummary = new BatterySummary(this);
+		// Make sure we add the batter before registration. The addBattery
+		// function will update the values within the summary, so we avoid
+		// registering a service without valid values.
+		mSummary->addBattery(m);
+		mSummary->registerService();
+	} else {
+		mSummary->addBattery(m);
+	}
+	if (mBmsService == 0) {
+		mBmsService = new BmsService(this);
+		mSummary->addBattery(m);
+		mBmsService->registerService();
+	} else {
+		mBmsService->addBattery(m);
+	}
 }
 
 void DBusRedflow::onConnectionLost()
