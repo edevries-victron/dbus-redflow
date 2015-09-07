@@ -8,7 +8,7 @@ class BatteryController;
 class BatteryControllerUpdater;
 class BatterySummary;
 class BmsService;
-class DbusServiceMonitor;
+class DeviceScanner;
 class ModbusRtu;
 class Settings;
 
@@ -34,6 +34,8 @@ signals:
 	void connectionLost();
 
 private slots:
+	void onDeviceFound(int address);
+
 	void onDeviceFound();
 
 	void onDeviceSettingsInitialized();
@@ -49,8 +51,9 @@ private slots:
 private:
 	void updateControlLoop();
 
-	DbusServiceMonitor *mServiceMonitor;
+	DeviceScanner *mDeviceScanner;
 	ModbusRtu *mModbus;
+	QString mPortName;
 	QList<BatteryController *> mBatteryControllers;
 	Settings *mSettings;
 	BatterySummary *mSummary;

@@ -8,31 +8,38 @@
 #include "bms_service.h"
 #include "dbus_redflow.h"
 #include "dbus_service_monitor.h"
+#include "device_scanner.h"
 #include "settings.h"
 #include "settings_bridge.h"
 
 DBusRedflow::DBusRedflow(const QString &portName, QObject *parent):
 	QObject(parent),
 	mModbus(new ModbusRtu(portName, 19200, this)),
+	mPortName(portName),
 	mSummary(0),
 	mBmsService(0)
 {
 	qRegisterMetaType<ConnectionState>();
 	qRegisterMetaType<QList<quint16> >();
 
-	for (int i=1; i<5; ++i) {
-		BatteryController *m = new BatteryController(portName, i, this);
-		new BatteryControllerUpdater(m, mModbus, m);
-		mBatteryControllers.append(m);
-		connect(m, SIGNAL(connectionStateChanged()),
-				this, SLOT(onConnectionStateChanged()));
-	}
-	
 	mSettings = new Settings(this);
 	new SettingsBridge(mSettings, this);
 
 	connect(mModbus, SIGNAL(serialEvent(const char *)),
 			this, SLOT(onSerialEvent(const char *)));
+
+	mDeviceScanner = new DeviceScanner(mModbus, mSettings, this);
+	connect(mDeviceScanner, SIGNAL(deviceFound(int)), this, SLOT(onDeviceFound(int)));
+}
+
+void DBusRedflow::onDeviceFound(int address)
+{
+	BatteryController *m = new BatteryController(mPortName, address, this);
+	new BatteryControllerUpdater(m, mModbus, m);
+	mBatteryControllers.append(m);
+	connect(m, SIGNAL(connectionStateChanged()),
+			this, SLOT(onConnectionStateChanged()));
+	mDeviceScanner->setScanInterval(2000);
 }
 
 void DBusRedflow::onConnectionStateChanged()
