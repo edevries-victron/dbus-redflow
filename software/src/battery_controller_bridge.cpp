@@ -38,15 +38,9 @@ BatteryControllerBridge::BatteryControllerBridge(BatteryController *BatteryContr
 	produce("/ProductName", BatteryController->productName());
 	produce("/ProductId", VE_PROD_ID_REDFLOW_ZBM2);
 	produce("/DeviceType", BatteryController->deviceType());
-	QString portName = BatteryController->portName();
-	int deviceInstance = getDeviceInstance(portName, "/dev/ttyUSB", 288);
-	if (deviceInstance == -1)
-		deviceInstance = getDeviceInstance(portName, "/dev/ttyO", 256);
-	produce("/Mgmt/Connection", portName);
-	produce("/DeviceInstance", deviceInstance);
-	// produce("/Capabilities", "Redflow,IntegratedSoc");
-	QString serial = BatteryController->serial();
-	produce("/Serial", serial);
+	produce("/Mgmt/Connection", "Modbus");
+	produce("/DeviceInstance", 40 + BatteryController->DeviceAddress());
+	produce("/Serial", BatteryController->serial());
 
 	produceBatteryInfo(BatteryController, "");
 
@@ -91,6 +85,7 @@ void BatteryControllerBridge::produceBatteryInfo(BatteryController *bc, const QS
 	// produce(bc, "SetOperationalMode", path + "/SetOperationalMode", "", 0);
 	produce(bc, "RequestImmediateSelfMaintenance", path + "/RequestImmediateSelfMaintenance", "", 0);
 
+	produce(bc, "hasAlarm", path + "/Alarms/Alarm", "", 0);
 	produce(bc, "maintenanceAlarm", path + "/Alarms/Maintenance", "", 0);
 	produce(bc, "maintenanceActiveAlarm", path + "/Alarms/MaintenanceActive", "", 0);
 	produce(bc, "overCurrentAlarm", path + "/Alarms/OverCurrent", "", 0);
@@ -120,14 +115,4 @@ bool BatteryControllerBridge::fromDBus(const QString &path, QVariant &value)
 	// Return value false means that changes from the D-Bus will not be passed
 	// to the QT properties.
 	return true;
-}
-
-int BatteryControllerBridge::getDeviceInstance(const QString &path,
-											   const QString &prefix,
-											   int instanceBase)
-{
-	if (path.startsWith(prefix)) {
-		return instanceBase + path.mid(prefix.size()).toInt();
-	}
-	return -1;
 }

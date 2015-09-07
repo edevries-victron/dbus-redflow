@@ -44,6 +44,7 @@ class BatteryController : public QObject
 //	Q_PROPERTY(int SetOperationalMode READ SetOperationalMode WRITE setSetOperationalMode NOTIFY setOperationalModeChanged)
 	Q_PROPERTY(int RequestImmediateSelfMaintenance READ RequestImmediateSelfMaintenance WRITE setRequestImmediateSelfMaintenance NOTIFY requestImmediateSelfMaintenanceChanged)
 
+	Q_PROPERTY(int hasAlarm READ hasAlarm WRITE setHasAlarm NOTIFY hasAlarmChanged)
 	Q_PROPERTY(int maintenanceAlarm READ maintenanceAlarm WRITE setMaintenanceAlarm NOTIFY maintenanceAlarmChanged)
 	Q_PROPERTY(int maintenanceActiveAlarm READ maintenanceActiveAlarm WRITE setMaintenanceActiveAlarm NOTIFY maintenanceActiveAlarmChanged)
 	Q_PROPERTY(int overCurrentAlarm READ overCurrentAlarm WRITE setOverCurrentAlarm NOTIFY overCurrentAlarmChanged)
@@ -85,6 +86,7 @@ signals:
 	void requestDelayedSelfMaintenanceChanged();
 	void requestImmediateSelfMaintenanceChanged();
 
+	void hasAlarmChanged();
 	void maintenanceAlarmChanged();
 	void maintenanceActiveAlarmChanged();
 	void overCurrentAlarmChanged();
@@ -108,9 +110,6 @@ public:
 
 	void setConnectionState(ConnectionState state);
 
-	/*!
-	 * Returns the device type as reported by the energy meter.
-	 */
 	int deviceType() const;
 
 	void setDeviceType(int t);
@@ -182,6 +181,8 @@ public:
 	int RequestImmediateSelfMaintenance() const;
 	void setRequestImmediateSelfMaintenance(int t);
 
+	int hasAlarm() const;
+	void setHasAlarm(int a);
 	int maintenanceAlarm() const;
 	void setMaintenanceAlarm(int v);
 	int maintenanceActiveAlarm() const;
@@ -234,7 +235,6 @@ signals:
 private:
 	ConnectionState mConnectionState;
 	int mDeviceType;
-	int mErrorCode;
 	int mFirmwareVersion;
 	QString mPortName;
 	QString mSerial;
@@ -258,6 +258,7 @@ private:
 	int mRequestDelayedSelfMaintenance;
 	int mRequestImmediateSelfMaintenance;
 
+	int mHasAlarm;
 	int mMaintenanceAlarm;
 	int mMaintenanceActiveAlarm;
 	int mOverCurrentAlarm;

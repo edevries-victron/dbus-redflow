@@ -10,6 +10,7 @@ static const int MeasurementWaitInterval = 5000;
 static const int ConnectionLostWaitInterval = 60 * 1000;  // 60 seconds in ms
 
 enum ModbusRegisters {
+	RegFirmwareVersion = 0x0003,
 	RegStatusSummary = 0x9001,
 	RegHardwareFailure = 0x9002,
 	RegOperationalFailure = 0x9003,
@@ -130,16 +131,27 @@ void BatteryControllerUpdater::onReadCompleted(int function, quint8 slaveAddress
 		QString serial = QString::number(registers[0]);
 		QLOG_INFO() << "Serial number:" << serial;
 		mSettings = new BatteryControllerSettings(0, serial, this);
-		mState = Start;
+		mState = FirmwareVersion;
 		mBatteryController->setSerial(serial);
 		mBatteryController->setConnectionState(Detected);
 		break;
 	}
+	case FirmwareVersion:
+//		QLOG_WARN() << __FUNCTION__ << "Fw:" << registers[0] << registers[1];
+//		QString fwVersion = QString("%1.%2.%3").
+//				arg(registers[0] / 100, 2, 10, QChar('0')).
+//				arg(registers[0] % 100, 2, 10, QChar('0')).
+//				arg(registers[1], 2, 10, QChar('0'));
+		mBatteryController->setFirmwareVersion((registers[0] << 16) | registers[1]);
+		mState = Start;
+		break;
 	case DeviceState:
 	{
+		qint16 summary = registers[0];
 		qint16 hwFailure = registers[1];
 		qint16 opFailure = registers[2];
 		qint16 warning = registers[3];
+		mBatteryController->setHasAlarm(((summary & 0xE000) == 0) ? 0 : 1);
 		mBatteryController->setMaintenanceAlarm(getWarningState(warning, 11));
 		mBatteryController->setMaintenanceActiveAlarm(getWarningState(warning, 10));
 		mBatteryController->setOverCurrentAlarm(getAlarmState(opFailure, warning, 15));
@@ -149,7 +161,6 @@ void BatteryControllerUpdater::onReadCompleted(int function, quint8 slaveAddress
 		mBatteryController->setBromidePumpAlarm(getErrorState(hwFailure, 14));
 		mBatteryController->setLeakSensorsAlarm(getErrorState(hwFailure, 11));
 		mBatteryController->setInternalFailureAlarm(getErrorState(hwFailure, 9));
-		mBatteryController->setElectricBoardAlarm(getErrorState(hwFailure, 8));
 		mBatteryController->setElectricBoardAlarm(getErrorState(hwFailure, 8));
 		mBatteryController->setBatteryTemperatureSensorAlarm(getErrorState(hwFailure, 7));
 		mBatteryController->setAirTemperatureSensorAlarm(getErrorState(hwFailure, 6));
@@ -292,6 +303,9 @@ void BatteryControllerUpdater::startNextAction()
 	switch (mState) {
 	case Serial:
 		readRegisters(RegSerial, 1);
+		break;
+	case FirmwareVersion:
+		readRegisters(RegFirmwareVersion, 2);
 		break;
 	case DeviceState:
 		readRegisters(RegStatusSummary, 4);

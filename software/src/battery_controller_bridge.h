@@ -32,9 +32,6 @@ protected:
 	virtual bool fromDBus(const QString &path, QVariant &value);
 
 private:
-	int getDeviceInstance(const QString &path, const QString &prefix,
-						  int instanceBase);
-
 	BatteryController *mBatteryController;
 };
 

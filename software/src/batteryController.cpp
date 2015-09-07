@@ -6,7 +6,6 @@ BatteryController::BatteryController(const QString &portName, int deviceAddress,
 	QObject(parent),
 	mConnectionState(Disconnected),
 	mDeviceType(0),
-	mErrorCode(0),
 	mFirmwareVersion(0),
 	mPortName(portName),
 	mBattVolts(0),
@@ -27,7 +26,8 @@ BatteryController::BatteryController(const QString &portName, int deviceAddress,
 	mDeviceAddress(deviceAddress),
 	mClearStatusRegisterFlags(0),
 	mRequestDelayedSelfMaintenance(0),
-	mRequestImmediateSelfMaintenance(0)
+	mRequestImmediateSelfMaintenance(0),
+	mHasAlarm(0)
 {
 }
 
@@ -346,6 +346,19 @@ void BatteryController::setRequestImmediateSelfMaintenance(int t)
 		return;
 	mRequestImmediateSelfMaintenance = t;
 	emit requestImmediateSelfMaintenanceChanged();
+}
+
+int BatteryController::hasAlarm() const
+{
+	return mHasAlarm;
+}
+
+void BatteryController::setHasAlarm(int a)
+{
+	if (mHasAlarm == a)
+		return;
+	mHasAlarm = a;
+	emit hasAlarmChanged();
 }
 
 int BatteryController::maintenanceAlarm() const

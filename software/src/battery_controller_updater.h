@@ -77,6 +77,7 @@ private:
 
 	enum State {
 		Serial,
+		FirmwareVersion,
 		DeviceState,
 		Measurements,
 		OperationalMode,
