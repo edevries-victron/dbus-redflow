@@ -35,7 +35,7 @@ unix {
     target.path = $${DESTDIR}$${bindir}
 }
 
-QT += core dbus
+QT += core dbus xml
 QT -= gui
 
 TARGET = dbus-redflow
@@ -45,6 +45,7 @@ CONFIG -= app_bundle
 TEMPLATE = app
 
 include(ext/qslog/QsLog.pri)
+include(ext/velib/src/qt/ve_qitems.pri)
 
 INCLUDEPATH += \
     ext/qslog \
@@ -58,7 +59,7 @@ SOURCES += \
     ext/velib/src/qt/v_busitem_adaptor.cpp \
     ext/velib/src/qt/v_busitem_private_cons.cpp \
     ext/velib/src/qt/v_busitem_private_prod.cpp \
-    ext/velib/src/qt/v_busitem_proxy.cpp \
+#    ext/velib/src/qt/v_busitem_proxy.cpp \
     ext/velib/src/plt/serial.c \
     ext/velib/src/plt/posix_serial.c \
     ext/velib/src/plt/posix_ctx.c \
@@ -75,14 +76,17 @@ SOURCES += \
     src/battery_summary.cpp \
     src/abstract_monitor_service.cpp \
     src/device_scanner.cpp \
-    src/battery_summary_bridge.cpp
+    src/battery_summary_bridge.cpp \
+    src/ve_service_dbus.cpp \
+    src/ve_item_provider_dbus.cpp \
+    src/dbus_tools.cpp
 
 HEADERS += \
     ext/velib/src/qt/v_busitem_adaptor.h \
     ext/velib/src/qt/v_busitem_private_cons.h \
     ext/velib/src/qt/v_busitem_private_prod.h \
     ext/velib/src/qt/v_busitem_private.h \
-    ext/velib/src/qt/v_busitem_proxy.h \
+#    ext/velib/src/qt/v_busitem_proxy.h \
     ext/velib/inc/velib/qt/v_busitem.h \
     ext/velib/inc/velib/qt/v_busitems.h \
     ext/velib/inc/velib/platform/serial.h \
@@ -99,4 +103,7 @@ HEADERS += \
     src/battery_summary.h \
     src/abstract_monitor_service.h \
     src/device_scanner.h \
-    src/battery_summary_bridge.h
+    src/battery_summary_bridge.h \
+    src/ve_service_dbus.h \
+    src/ve_item_provider_dbus.h \
+    src/dbus_tools.h

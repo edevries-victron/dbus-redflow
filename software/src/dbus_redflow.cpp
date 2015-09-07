@@ -1,5 +1,6 @@
 #include <QsLog.h>
 #include <QTimer>
+#include <velib/qt/ve_qitem.hpp>
 #include "battery_controller_bridge.h"
 #include "battery_controller_updater.h"
 #include "battery_controller.h"
@@ -7,6 +8,7 @@
 #include "battery_summary_bridge.h"
 #include "dbus_redflow.h"
 #include "device_scanner.h"
+#include "ve_item_provider_dbus.h"
 
 DBusRedflow::DBusRedflow(const QString &portName, QObject *parent):
 	QObject(parent),
@@ -25,6 +27,13 @@ DBusRedflow::DBusRedflow(const QString &portName, QObject *parent):
 	connect(mDeviceScanner, SIGNAL(deviceFound(int)), this, SLOT(onDeviceFound(int)));
 
 	QTimer::singleShot(7500, this, SLOT(onScanTimeout()));
+
+	VeQItem *root = VeQItems::getRoot();
+	VeQItemProducer *prod = new VeQItemProducer(root, "dbus", root);
+	VeItemProviderDbus *prov = new VeItemProviderDbus(prod->services(), prod);
+
+	VeQItem *item = root->itemGetOrCreate("dbus/com.victronenergy.battery.zbm", false);
+	mSummary = new BatterySummary(item, this);
 }
 
 void DBusRedflow::onDeviceFound(int address)
@@ -77,13 +86,14 @@ void DBusRedflow::onDeviceInitialized(BatteryController *battery)
 {
 	new BatteryControllerBridge(battery, battery);
 	if (mSummary == 0) {
-		mSummary = new BatterySummary(this);
-		// Make sure we add the battery before registration. The addBattery
+		VeQItem *item = VeQItems::getRoot()->itemGetOrCreate("com.victronenergy.battery.zbm", false);
+		mSummary = new BatterySummary(item, this);
+		// Make sure we add the batter before registration. The addBattery
 		// function will update the values within the summary, so we avoid
 		// registering a service without valid values.
 		mSummary->addBattery(battery);
-		BatterySummaryBridge *bridge = new BatterySummaryBridge(mSummary, mSummary);
-		bridge->registerService();
+//		BatterySummaryBridge *bridge = new BatterySummaryBridge(mSummary, mSummary);
+//		bridge->registerService();
 	} else {
 		mSummary->addBattery(battery);
 	}

@@ -1,5 +1,6 @@
 #include <QsLog.h>
 #include <QTimer>
+#include <velib/qt/ve_qitem.hpp>
 #include "battery_controller.h"
 #include "battery_controller_updater.h"
 #include "modbus_rtu.h"
@@ -33,21 +34,48 @@ enum ModbusRegisters {
 	RegImmediateSelfMaintenance = 0x9034
 };
 
-BatteryControllerUpdater::BatteryControllerUpdater(BatteryController *mBatteryController,
-												   ModbusRtu *modbus,
-												   QObject *parent):
+BatteryControllerUpdater::BatteryControllerUpdater(int deviceAddress, VeQItem *root,
+												   ModbusRtu *modbus, QObject *parent):
 	QObject(parent),
-	mBatteryController(mBatteryController),
-	mDeviceAddress(mBatteryController->DeviceAddress()),
+	mDeviceAddress(deviceAddress),
 	mRegisterCount(0),
 	mUpdatingController(false),
 	mModbus(0),
 	mAcquisitionTimer(new QTimer(this)),
 	mTimeoutCount(0),
 	mState(Init),
-	mTmpState(Wait)
+	mTmpState(Wait),
+	mVoltage(root->itemGetOrCreate("/Dc/0/Voltage")),
+	mCurrent(root->itemGetOrCreate("/Dc/0/Current")),
+	mPower(root->itemGetOrCreate("/Dc/0/Power")),
+	mSoc(root->itemGetOrCreate("/Soc")),
+	mSoh(root->itemGetOrCreate("/SohExperimental")),
+	mClearStatusRegisterFlags(root->itemGetOrCreate("/ClearStatusRegisterFlags")),
+	mRequestDelayedSelfMaintenance(root->itemGetOrCreate("/RequestDelayedSelfMaintenance")),
+	mRequestImmediateSelfMaintenance(root->itemGetOrCreate("/RequestImmediateSelfMaintenance")),
+	mConsumedAmpHours(root->itemGetOrCreate("/ConsumedAmphours")),
+	mBatteryTemperature(root->itemGetOrCreate("/Dc/0/Temperature")),
+	mAirTemperature(root->itemGetOrCreate("/AirTemperature")),
+	mBusVoltage(root->itemGetOrCreate("/BusVoltage")),
+	mOperationalMode(root->itemGetOrCreate("/OperationalMode")),
+	mAlarm(root->itemGetOrCreate("/OperationalMode")),
+	mBatteryTemperatureSensorAlarm(root->itemGetOrCreate("/Alarms/BatteryTemperatureSensor")),
+	mBromidePumpAlarm(root->itemGetOrCreate("/Alarms/BromidePump")),
+	mZincPumpAlarm(root->itemGetOrCreate("/Alarms/AincPump")),
+	mElectricBoardAlarm(root->itemGetOrCreate("/Alarms/ElectricBoard")),
+	mHighTemperatureAlarm(root->itemGetOrCreate("/Alarms/HighTemperature")),
+	mHighVoltageAlarm(root->itemGetOrCreate("/Alarms/HighVoltage")),
+	mInternalFailure(root->itemGetOrCreate("/Alarms/InternalFailure")),
+	mLeak1TripAlarm(root->itemGetOrCreate("/Alarms/Leak1Trip")),
+	mLeak2TripAlarm(root->itemGetOrCreate("/Alarms/Leak2Trip")),
+	mLeakSensorsAlarm(root->itemGetOrCreate("/Alarms/LeakSensors")),
+	mMaintenanceActive(root->itemGetOrCreate("/Alarms/MaintenanceActive")),
+	mMaintenanceNeeded(root->itemGetOrCreate("/Alarms/MaintenanceNeeded")),
+	mOverCurrentAlarm(root->itemGetOrCreate("/Alarms/OverCurrent")),
+	mStateOfHealthAlarm(root->itemGetOrCreate("/Alarms/StateOfHealth")),
+	mUnknownAlarm(root->itemGetOrCreate("/Alarms/Unknown"))
 {
-	Q_ASSERT(mBatteryController != 0);
+	Q_ASSERT(root != 0);
 	mModbus = modbus;
 	connect(mModbus, SIGNAL(readCompleted(int, quint8, const QList<quint16> &)),
 			this, SLOT(onReadCompleted(int, quint8, QList<quint16>)));
@@ -57,23 +85,25 @@ BatteryControllerUpdater::BatteryControllerUpdater(BatteryController *mBatteryCo
 			this, SLOT(onErrorReceived(int, quint8, int)));
 	connect(mAcquisitionTimer, SIGNAL(timeout()),
 			this, SLOT(onWaitFinished()));
-	connect(mBatteryController, SIGNAL(clearStatusRegisterFlagsChanged()),
+
+	connect(mClearStatusRegisterFlags, SIGNAL(valueChanged(VeQItem *, QVariant)),
 			this, SLOT(onClearStatusRegisterFlagsChanged()));
-	connect(mBatteryController, SIGNAL(operationalModeChanged()),
+	connect(mOperationalMode, SIGNAL(valueChanged(VeQItem *, QVariant)),
 			this, SLOT(onOperationalModeChanged()));
-	connect(mBatteryController, SIGNAL(requestDelayedSelfMaintenanceChanged()),
+	connect(mRequestDelayedSelfMaintenance, SIGNAL(valueChanged(VeQItem *, QVariant)),
 			this, SLOT(onRequestDelayedSelfMaintenanceChanged()));
-	connect(mBatteryController, SIGNAL(requestImmediateSelfMaintenanceChanged()),
+	connect(mRequestImmediateSelfMaintenance, SIGNAL(valueChanged(VeQItem *, QVariant)),
 			this, SLOT(onRequestImmediateSelfMaintenanceChanged()));
-	connect(mBatteryController, SIGNAL(deviceAddressChanged()),
+
+	connect(root, SIGNAL(deviceAddressChanged()), /// ???
 			this, SLOT(onDeviceAddressChanged()));
+
 	mAcquisitionTimer->setSingleShot(true);
 	mStopwatch.start();
 	startNextAction();
 }
 
-void BatteryControllerUpdater::onErrorReceived(int errorType, quint8 slaveAddress,
-											   int exception)
+void BatteryControllerUpdater::onErrorReceived(int errorType, quint8 slaveAddress, int exception)
 {
 	if (slaveAddress != mDeviceAddress)
 		return;
@@ -153,44 +183,44 @@ void BatteryControllerUpdater::onReadCompleted(int function, quint8 slaveAddress
 			quint16 opFailure = registers[2];
 			quint16 warning = registers[3];
 			QLOG_DEBUG() << "Device state:" << mDeviceAddress << summary << hwFailure << opFailure << warning;
-			mBatteryController->setHasAlarm(((summary & 0xE000) == 0) ? 0 : 1);
-			mBatteryController->setMaintenanceAlarm(getWarningState(warning, 11));
-			mBatteryController->setMaintenanceActiveAlarm(getWarningState(warning, 10));
-			mBatteryController->setOverCurrentAlarm(getAlarmState(opFailure, warning, 15));
-			mBatteryController->setOverVoltageAlarm(getAlarmState(opFailure, warning, 14));
-			mBatteryController->setBatteryTemperatureAlarm(getAlarmState(opFailure, warning, 13));
-			mBatteryController->setZincPumpAlarm(getErrorState(hwFailure, 15));
-			mBatteryController->setBromidePumpAlarm(getErrorState(hwFailure, 14));
-			mBatteryController->setLeakSensorsAlarm(getErrorState(hwFailure, 11));
-			mBatteryController->setInternalFailureAlarm(getErrorState(hwFailure, 9));
-			mBatteryController->setElectricBoardAlarm(getErrorState(hwFailure, 8));
-			mBatteryController->setBatteryTemperatureSensorAlarm(getErrorState(hwFailure, 7));
-			mBatteryController->setAirTemperatureSensorAlarm(getErrorState(hwFailure, 6));
-			mBatteryController->setStateOfHealthAlarm(getErrorState(hwFailure, 5));
-			mBatteryController->setLeak1TripAlarm(getErrorState(hwFailure, 4));
-			mBatteryController->setLeak2TripAlarm(getErrorState(hwFailure, 3));
-			mBatteryController->setUnknownAlarm(getAlarmState(hwFailure | opFailure, warning, 0));
+			mAlarm->setValue(((summary & 0xE000) == 0) ? 0 : 1);
+			mMaintenanceNeeded->setValue(getWarningState(warning, 11));
+			mMaintenanceActive->setValue(getWarningState(warning, 10));
+			mOverCurrentAlarm->setValue(getAlarmState(opFailure, warning, 15));
+			mHighVoltageAlarm->setValue(getAlarmState(opFailure, warning, 14));
+			mHighTemperatureAlarm->setValue(getAlarmState(opFailure, warning, 13));
+			mZincPumpAlarm->setValue(getErrorState(hwFailure, 15));
+			mBromidePumpAlarm->setValue(getErrorState(hwFailure, 14));
+			mLeakSensorsAlarm->setValue(getErrorState(hwFailure, 11));
+			mInternalFailure->setValue(getErrorState(hwFailure, 9));
+			mElectricBoardAlarm->setValue(getErrorState(hwFailure, 8));
+			mBatteryTemperatureSensorAlarm->setValue(getErrorState(hwFailure, 7));
+			mAirTemperatureSensorAlarm->setValue(getErrorState(hwFailure, 6));
+			mStateOfHealthAlarm->setValue(getErrorState(hwFailure, 5));
+			mLeak1TripAlarm->setValue(getErrorState(hwFailure, 4));
+			mLeak2TripAlarm->setValue(getErrorState(hwFailure, 3));
+			mUnknownAlarm->setValue(getAlarmState(hwFailure | opFailure, warning, 0));
 			mState = Measurements;
 			break;
 		}
 		case Measurements:
-			mBatteryController->setSOC(registers[0] / 100.0);
-			mBatteryController->setSOCAmpHrs(-static_cast<qint16>(registers[1]) / 10.0);
-			mBatteryController->setBattVolts(registers[2] / 10.0);
-			mBatteryController->setBattAmps(-static_cast<qint16>(registers[3]) / 10.0);
-			mBatteryController->setBattTemp(static_cast<qint16>(registers[4]) / 10.0);
-			mBatteryController->setAirTemp(static_cast<qint16>(registers[5]) / 10.0);
+			mSoc->setValue(registers[0] / 100.0);
+			mConsumedAmpHours->setValue(-static_cast<qint16>(registers[1]) / 10.0);
+			mVoltage->setValue(registers[2] / 10.0);
+			mCurrent->setValue(-static_cast<qint16>(registers[3]) / 10.0);
+			mBatteryTemperature->setValue(static_cast<qint16>(registers[4]) / 10.0);
+			mAirTemperature->setValue(static_cast<qint16>(registers[5]) / 10.0);
 			mState = OperationalMode;
 			break;
 		case OperationalMode:
 			mUpdatingController = true;
-			mBatteryController->setOperationalMode(registers[0]);
+			mOperationalMode->setValue(registers[0]);
 			mUpdatingController = false;
 			mState = Health;
 			break;
 		case Health:
-			mBatteryController->setHealthIndication(registers[0]);
-			mBatteryController->setBusVolts(registers[1] / 10.0);
+			mSoh->setValue(registers[0]);
+			mBusVoltage->setValue(registers[1] / 10.0);
 			mBatteryController->setState(registers[2]);
 			mBatteryController->setConnectionState(Connected);
 			mState = Wait;
@@ -223,7 +253,7 @@ void BatteryControllerUpdater::onWriteCompleted(int function, quint8 slaveAddres
 		mTmpState = WaitOnDeviceReinit;
 		break;
 	case ClearStatus:
-		mBatteryController->setClearStatusRegisterFlags(0);
+		mClearStatusRegisterFlags->setValue(0);
 		break;
 	case SetOperationalMode:
 		// This is a workaround: the ZBM takes some time to change the
@@ -234,10 +264,10 @@ void BatteryControllerUpdater::onWriteCompleted(int function, quint8 slaveAddres
 		mTmpState = Wait;
 		break;
 	case RequestDelayedMaintenance:
-		mBatteryController->setRequestDelayedSelfMaintenance(0);
+		mRequestDelayedSelfMaintenance->setValue(0);
 		break;
 	case RequestImmediateMaintenance:
-		mBatteryController->setRequestImmediateSelfMaintenance(0);
+		mRequestImmediateSelfMaintenance->setValue(0);
 		break;
 	default:
 		mTmpState = DeviceState;
@@ -269,7 +299,7 @@ void BatteryControllerUpdater::onWaitFinished()
 
 void BatteryControllerUpdater::onClearStatusRegisterFlagsChanged()
 {
-	if (mBatteryController->ClearStatusRegisterFlags() != 0)
+	if (mClearStatusRegisterFlags->getValue().toInt() != 0)
 		queueWriteAction(ClearStatus);
 }
 
@@ -282,13 +312,13 @@ void BatteryControllerUpdater::onOperationalModeChanged()
 
 void BatteryControllerUpdater::onRequestDelayedSelfMaintenanceChanged()
 {
-	if (mBatteryController->RequestDelayedSelfMaintenance() != 0)
+	if (mRequestDelayedSelfMaintenance->getValue().toInt() != 0)
 		queueWriteAction(RequestDelayedMaintenance);
 }
 
 void BatteryControllerUpdater::onRequestImmediateSelfMaintenanceChanged()
 {
-	if (mBatteryController->RequestImmediateSelfMaintenance())
+	if (mRequestImmediateSelfMaintenance->getValue().toInt() != 0)
 		queueWriteAction(RequestImmediateMaintenance);
 }
 
@@ -355,16 +385,16 @@ void BatteryControllerUpdater::startNextAction()
 		writeRegister(RegDeviceAddress, mBatteryController->DeviceAddress());
 		break;
 	case ClearStatus:
-		writeRegister(RegClearStatusFlags, mBatteryController->ClearStatusRegisterFlags());
+		writeRegister(RegClearStatusFlags, mClearStatusRegisterFlags->getValue().toInt());
 		break;
 	case SetOperationalMode:
-		writeRegister(RegEnterRunCommand, mBatteryController->operationalMode());
+		writeRegister(RegEnterRunCommand, mOperationalMode->getValue().toInt());
 		break;
 	case RequestDelayedMaintenance:
-		writeRegister(RegDelayedSelfMaintenance, mBatteryController->RequestDelayedSelfMaintenance());
+		writeRegister(RegDelayedSelfMaintenance, mRequestDelayedSelfMaintenance->getValue().toInt());
 		break;
 	case RequestImmediateMaintenance:
-		writeRegister(RegImmediateSelfMaintenance, mBatteryController->RequestImmediateSelfMaintenance());
+		writeRegister(RegImmediateSelfMaintenance, mRequestImmediateSelfMaintenance->getValue().toInt());
 		break;
 	default:
 		QLOG_ERROR() << "Invalid state while starting new action" << mState;

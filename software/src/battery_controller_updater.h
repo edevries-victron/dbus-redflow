@@ -6,7 +6,7 @@
 #include "defines.h"
 #include "modbus_rtu.h"
 
-class BatteryController;
+class VeQItem;
 
 /*!
  * Retrieves data from a Carlo Gavazzi energy meter.
@@ -36,8 +36,8 @@ public:
 	 * between multiple `AcSensorUpdater` objects. The `modbus` object will not
 	 * be deleted in the destructor.
 	 */
-	BatteryControllerUpdater(BatteryController *mBatteryController,
-							 ModbusRtu *modbus, QObject *parent = 0);
+	BatteryControllerUpdater(int deviceAddress, VeQItem *root, ModbusRtu *modbus,
+							 QObject *parent = 0);
 
 private slots:
 	void onErrorReceived(int errorType, quint8 addr, int exception);
@@ -88,7 +88,6 @@ private:
 
 	void writeRegister(quint16 reg, quint16 value);
 
-	BatteryController *mBatteryController;
 	int mDeviceAddress;
 	int mRegisterCount;
 	bool mUpdatingController;
@@ -98,6 +97,38 @@ private:
 	QElapsedTimer mStopwatch;
 	State mState;
 	State mTmpState;
+
+	VeQItem *mVoltage;
+	VeQItem *mCurrent;
+	VeQItem *mPower;
+	VeQItem *mSoc;
+	VeQItem *mSoh;
+	VeQItem *mClearStatusRegisterFlags;
+	VeQItem *mRequestDelayedSelfMaintenance;
+	VeQItem *mRequestImmediateSelfMaintenance;
+	VeQItem *mConsumedAmpHours;
+	VeQItem *mBatteryTemperature;
+	VeQItem *mAirTemperature;
+	VeQItem *mBusVoltage;
+	VeQItem *mOperationalMode;
+
+	VeQItem *mAlarm;
+	VeQItem *mAirTemperatureSensorAlarm;
+	VeQItem *mBatteryTemperatureSensorAlarm;
+	VeQItem *mBromidePumpAlarm;
+	VeQItem *mZincPumpAlarm;
+	VeQItem *mElectricBoardAlarm;
+	VeQItem *mHighTemperatureAlarm;
+	VeQItem *mHighVoltageAlarm;
+	VeQItem *mInternalFailure;
+	VeQItem *mLeak1TripAlarm;
+	VeQItem *mLeak2TripAlarm;
+	VeQItem *mLeakSensorsAlarm;
+	VeQItem *mMaintenanceActive;
+	VeQItem *mMaintenanceNeeded;
+	VeQItem *mOverCurrentAlarm;
+	VeQItem *mStateOfHealthAlarm;
+	VeQItem *mUnknownAlarm;
 };
 
 #endif // BATTERY_CONTROLLER_UPDATER_H
