@@ -1,202 +1,27 @@
 #include <QTimer>
 #include <velib/qt/v_busitem.h>
+#include <velib/qt/ve_qitem.hpp>
 #include "batteryController.h"
 #include "battery_summary.h"
 
-BatterySummary::BatterySummary(QObject *parent):
-	QObject(parent),
-	mZbmCount(0),
-	mAverageVoltage(0),
-	mTotalCurrent(0),
-	mTotalPower(0),
-	mAverageStateOfCharge(0),
-	mOperationalMode(-1),
-	mRequestClearStatusRegister(0),
-	mRequestDelayedSelfMaintenance(0),
-	mRequestImmediateSelfMaintenance(0),
-	mMaintenanceActive(0),
-	mMaintenanceNeeded(0)
-{
-	QTimer *timer = new QTimer(this);
-	timer->setInterval(1000);
-	timer->start();
-	connect(timer, SIGNAL(timeout()), this, SLOT(onTimeout()));
-	updateValues();
-}
+// static const QString ServiceName = "com.victronenergy.battery.zbm";
 
-QList<int> BatterySummary::deviceAddresses() const
+BatterySummary::BatterySummary(VeQItem *root, QObject *parent):
+	AbstractMonitorService(root, parent),
+	mVoltage(0),
+	mCurrent(0),
+	mPower(0),
+	mTemperature(0),
+	mConsumedAmphours(0),
+	mSoc(0)
 {
-	QList<int> result;
-	foreach (BatteryController *bc, mControllers) {
-		result.append(bc->DeviceAddress());
-	}
-	return result;
-}
-
-void BatterySummary::addBattery(BatteryController *c)
-{
-	if (mControllers.contains(c))
-		return;
-	mControllers.append(c);
-	connect(c, SIGNAL(destroyed()), this, SLOT(onControllerDestroyed()));
-	updateValues();
-	emit deviceAddressesChanged();
-}
-
-int BatterySummary::zbmCount() const
-{
-	return mZbmCount;
-}
-
-void BatterySummary::setZbmCount(int v)
-{
-	if (mZbmCount == v)
-		return;
-	mZbmCount = v;
-	emit zbmCountChanged();
-}
-
-double BatterySummary::averageVoltage() const
-{
-	return mAverageVoltage;
-}
-
-void BatterySummary::setAverageVoltage(double v)
-{
-	if (mAverageVoltage == v)
-		return;
-	mAverageVoltage = v;
-	emit averageVoltageChanged();
-}
-
-double BatterySummary::totalCurrent() const
-{
-	return mTotalCurrent;
-}
-
-void BatterySummary::setTotalCurrent(double v)
-{
-	if (mTotalCurrent == v)
-		return;
-	mTotalCurrent = v;
-	emit totalCurrentChanged();
-}
-
-double BatterySummary::totalPower() const
-{
-	return mTotalPower;
-}
-
-void BatterySummary::setTotalPower(double v)
-{
-	if (mTotalPower == v)
-		return;
-	mTotalPower = v;
-	emit totalPowerChanged();
-}
-
-double BatterySummary::averageStateOfCharge() const
-{
-	return mAverageStateOfCharge;
-}
-
-void BatterySummary::setAverageStateOfCharge(double v)
-{
-	if (mAverageStateOfCharge == v)
-		return;
-	mAverageStateOfCharge = v;
-	emit averageStateOfChargeChanged();
-}
-
-int BatterySummary::operationalMode() const
-{
-	return mOperationalMode;
-}
-
-void BatterySummary::setOperationalMode(int v)
-{
-	if (mOperationalMode == v)
-		return;
-	mOperationalMode = v;
-	emit operationalModeChanged();
-}
-
-int BatterySummary::requestClearStatusRegister() const
-{
-	return mRequestClearStatusRegister;
-}
-
-void BatterySummary::setRequestClearStatusRegister(int v)
-{
-	if (mRequestClearStatusRegister == v)
-		return;
-	mRequestClearStatusRegister = v;
-	emit requestClearStatusRegisterChanged();
-}
-
-int BatterySummary::requestDelayedSelfMaintenance() const
-{
-	return mRequestDelayedSelfMaintenance;
-}
-
-void BatterySummary::setRequestDelayedSelfMaintenance(int v)
-{
-	if (mRequestDelayedSelfMaintenance == v)
-		return;
-	mRequestDelayedSelfMaintenance = v;
-	emit requestDelayedSelfMaintenanceChanged();
-}
-
-int BatterySummary::requestImmediateSelfMaintenance() const
-{
-	return mRequestImmediateSelfMaintenance;
-}
-
-void BatterySummary::setRequestImmediateSelfMaintenance(int v)
-{
-	if (mRequestImmediateSelfMaintenance == v)
-		return;
-	mRequestImmediateSelfMaintenance = v;
-	emit requestImmediateSelfMaintenanceChanged();
-}
-
-int BatterySummary::maintenanceActive() const
-{
-	return mMaintenanceActive;
-}
-
-void BatterySummary::setMaintenanceActive(int v)
-{
-	if (mMaintenanceActive == v)
-		return;
-	mMaintenanceActive = v;
-	emit maintenanceActiveChanged();
-}
-
-int BatterySummary::maintenanceNeeded() const
-{
-	return mMaintenanceNeeded;
-}
-
-void BatterySummary::setMaintenanceNeeded(int v)
-{
-	if (mMaintenanceNeeded == v)
-		return;
-	mMaintenanceNeeded = v;
-	emit maintenanceNeededChanged();
-}
-
-void BatterySummary::onTimeout()
-{
-	updateValues();
-}
-
-void BatterySummary::onControllerDestroyed()
-{
-	if (mControllers.removeOne(static_cast<BatteryController *>(sender()))) {
-		updateValues();
-		emit deviceAddressesChanged();
-	}
+	mVoltage = produce("/Dc/0/Voltage", QVariant(), "V", 1);
+	mCurrent = produce("/Dc/0/Current", QVariant(), "A", 1);
+	mPower = produce("/Dc/0/Power", QVariant(), "W", 0);
+	mTemperature = produce("/Dc/0/Temperature", QVariant(), "C", 1);
+	mConsumedAmphours = produce("/ConsumedAmphours", QVariant(), "Ah", 1);
+	mSoc = produce("/Soc", QVariant(), "%", 0);
+	mZbmCount = produce("/ZbmCount", 0);
 }
 
 void BatterySummary::updateValues()
@@ -220,7 +45,7 @@ void BatterySummary::updateValues()
 		tMax = qMax(tMax, bc->BattTemp());
 		socTot += bc->SOC();
 		++socCount;
-		int userOp = mOperationalMode;
+		int userOp = mOperationalMode->getValue().toInt();
 		if (userOp != -1)
 			bc->setOperationalMode(userOp);
 		// We set maintenanceNeeded and maintenanceActive to false if any
@@ -229,26 +54,30 @@ void BatterySummary::updateValues()
 		// into maintance mode.
 		maintenanceNeeded = maintenanceNeeded && bc->maintenanceAlarm() != 0;
 		maintenanceActive = maintenanceActive && bc->maintenanceActiveAlarm() != 0;
-		if (mRequestClearStatusRegister == 1)
+		if (mRequestClearStatusRegister->getValue() == 1)
 			bc->setClearStatusRegisterFlags(1);
-		if (mRequestDelayedSelfMaintenance == 1)
+		if (mRequestDelayedSelfMaintenance->getValue() == 1)
 			bc->setRequestDelayedSelfMaintenance(1);
-		if (mRequestImmediateSelfMaintenance == 1)
+		if (mRequestImmediateSelfMaintenance->getValue() == 1)
 			bc->setRequestImmediateSelfMaintenance(1);
 	}
 	int count = mControllers.size();
+	mZbmCount->setValue(count);
+	if (vCount > 0)
+		mVoltage->setValue(vTot / vCount);
+	else
+		mVoltage->setValue(QVariant());
+	mCurrent->setValue(iTot);
+	mPower->setValue(pTot);
+	if (socCount > 0)
+		mSoc->setValue(socTot / socCount);
+	else
+		mSoc->setValue(QVariant());
+//	mOperationalMode->setValue(-1);
+//	mRequestClearStatusRegister->setValue(0);
+//	mRequestDelayedSelfMaintenance->setValue(0);
+//	mRequestImmediateSelfMaintenance->setValue(0);
 
-	setZbmCount(count);
-	setAverageVoltage(vTot / vCount);
-	setTotalCurrent(iTot);
-	setTotalPower(pTot);
-	setAverageStateOfCharge(socTot / socCount);
-
-	setOperationalMode(-1);
-	setRequestClearStatusRegister(0);
-	setRequestDelayedSelfMaintenance(0);
-	setRequestImmediateSelfMaintenance(0);
-
-	setMaintenanceActive(maintenanceNeeded && count > 0 ? 1 : 0);
-	setMaintenanceNeeded(maintenanceActive && count > 0 ? 1 : 0);
+//	mMaintenanceActive->setValue(maintenanceNeeded && count > 0 ? 1 : 0);
+//	mMaintenanceNeeded->setValue(maintenanceActive && count > 0 ? 1 : 0);
 }

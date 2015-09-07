@@ -1,11 +1,12 @@
 #include <velib/qt/v_busitem.h>
+#include <velib/qt/ve_qitem.hpp>
 #include "batteryController.h"
 #include "bms_service.h"
 
 static const QString ServiceName = "com.victronenergy.bms.zbm";
 
-BmsService::BmsService(QObject *parent):
-	AbstractMonitorService(ServiceName, parent)
+BmsService::BmsService(VeQItem *root, QObject *parent):
+	AbstractMonitorService(root, parent)
 {
 	produce("/Mgmt/Connection", "None");
 	produce("/ProductName", "ZBM BMS");

@@ -25,18 +25,18 @@ void initDBus(const QString &dbusAddress)
 {
 	VBusItems::setDBusAddress(dbusAddress);
 
-	QLOG_INFO() << "Wait for local settings on DBus... ";
-	VBusItem settings;
-	settings.consume("com.victronenergy.settings", "/Settings/Vrmlogger/Url");
-	for (;;) {
-		QVariant reply = settings.getValue();
-		QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
-		if (reply.isValid())
-			break;
-		usleep(500000);
-		QLOG_INFO() << "Waiting...";
-	}
-	QLOG_INFO() << "Local settings found";
+//	QLOG_INFO() << "Wait for local settings on DBus... ";
+//	VBusItem settings;
+//	settings.consume("com.victronenergy.settings", "/Settings/Vrmlogger/Url");
+//	for (;;) {
+//		QVariant reply = settings.getValue();
+//		QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+//		if (reply.isValid())
+//			break;
+//		usleep(500000);
+//		QLOG_INFO() << "Waiting...";
+//	}
+//	QLOG_INFO() << "Local settings found";
 }
 
 extern "C"

@@ -3,20 +3,20 @@
 
 #include "abstract_monitor_service.h"
 
-class VBusItem;
+class VeQItem;
 
 class BmsService : public AbstractMonitorService
 {
 	Q_OBJECT
 public:
-	BmsService(QObject *parent = 0);
+	BmsService(VeQItem *root, QObject *parent = 0);
 
 protected:
 	virtual void updateValues();
 
 private:
-	VBusItem *mAllowedToCharge;
-	VBusItem *mAllowedToDischarge;
+	VeQItem *mAllowedToCharge;
+	VeQItem *mAllowedToDischarge;
 };
 
 #endif // BMSSERVICE_H
