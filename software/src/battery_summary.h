@@ -15,12 +15,11 @@ protected:
 	virtual void updateValues();
 
 private:
+	VBusItem *mZbmCount;
 	VBusItem *mVoltage;
 	VBusItem *mCurrent;
 	VBusItem *mPower;
 	VBusItem *mTemperature;
-	VBusItem *mConsumedAmphours;
-	// VBusItem *mAlarms;
 	VBusItem *mSoc;
 };
 

@@ -1,4 +1,5 @@
 #include <velib/qt/v_busitem.h>
+#include <velib/vecan/products.h>
 #include "batteryController.h"
 #include "battery_summary.h"
 
@@ -6,20 +7,27 @@ static const QString ServiceName = "com.victronenergy.battery.zbm";
 
 BatterySummary::BatterySummary(QObject *parent):
 	AbstractMonitorService(ServiceName, parent),
+	mZbmCount(0),
 	mVoltage(0),
 	mCurrent(0),
 	mPower(0),
 	mTemperature(0),
-	mConsumedAmphours(0),
-	// mAlarms(0),
 	mSoc(0)
 {
+	// The D-Bus paths /Mgmt/Connection, /ProductName, and /Connected are used
+	// by system-calc to determine whether a service is connected.
+	// /Connected must be 1. /Mgmt/Connection and /ProductName must exist and
+	// be valid.
+	produce("/Mgmt/Connection", "Modbus");
+	produce("/ProductName", "ZBM summary");
+	produce("/Connected", 1);
+	produce("/ProductId", VE_PROD_ID_REDFLOW_ZBM2);
+
+	mZbmCount = produce("/ZbmCount", QVariant(), "", 0);
 	mVoltage = produce("/Dc/0/Voltage", QVariant(), "V", 1);
 	mCurrent = produce("/Dc/0/Current", QVariant(), "A", 1);
 	mPower = produce("/Dc/0/Power", QVariant(), "W", 0);
 	mTemperature = produce("/Dc/0/Temperature", QVariant(), "C", 1);
-	mConsumedAmphours = produce("/ConsumedAmphours", QVariant(), "Ah", 1);
-	// mAlarms = produce("/Alarm/Alarms", QVariant());
 	mSoc = produce("/Soc", QVariant(), "%", 0);
 }
 
@@ -30,7 +38,6 @@ void BatterySummary::updateValues()
 	double iTot	= 0;
 	double pTot = 0;
 	double tMax = 0;
-	double ampHours = 0;
 	double socTot = 0;
 	int socCount = 0;
 	foreach (const BatteryController *bc, controllers()) {
@@ -41,16 +48,14 @@ void BatterySummary::updateValues()
 		iTot += bc->BattAmps();
 		pTot += bc->BattPower();
 		tMax = qMax(tMax, bc->BattTemp());
-		ampHours += bc->SOCAmpHrs();
 		socTot += bc->SOC();
 		++socCount;
 	}
 	int count = controllers().size();
+	mZbmCount->setValue(controllers().size());
 	mVoltage->setValue(vCount == 0 ? QVariant() : vTot / vCount);
 	mCurrent->setValue(vCount  == 0 ? QVariant() : iTot);
 	mPower->setValue(vCount == 0 ? QVariant() : pTot);
 	mTemperature->setValue(count == 0 ? QVariant() : tMax);
-	mConsumedAmphours->setValue(count == 0 ? QVariant() : ampHours);
-	// mAlarms->setValue(0);
 	mSoc->setValue(socCount == 0 ? QVariant() : socTot / socCount);
 }

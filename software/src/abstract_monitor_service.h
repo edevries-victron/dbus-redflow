@@ -37,7 +37,6 @@ private slots:
 private:
 	VBusNode *mRoot;
 	QList<const BatteryController *> mControllers;
-	QDBusConnection mConnection;
 	QString mServiceName;
 	bool mServiceRegistered;
 };

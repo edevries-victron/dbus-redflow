@@ -77,7 +77,7 @@ void BatteryControllerBridge::produceBatteryInfo(BatteryController *bc, const QS
 	produce(bc, "SOCAmpHrs", path + "/ConsumedAmphours", "", 0 );
 	produce(bc, "AirTemp", path + "/AirTemperature", "", 0);
 	produce(bc, "HealthIndication", path + "/Soh", "", 0);
-//	produce(bc, "BussVolts", path + "/BussVolts", "", 0);
+	produce(bc, "BussVolts", path + "/BussVoltage", "", 0);
 	produce(bc, "State", path + "/State", "", 0);
 	produce(bc, "DeviceAddress", path + "/DeviceAddress", "", 0);
 	produce(bc, "ClearStatusRegisterFlags", path + "/ClearStatusRegisterFlags", "", 0);

@@ -13,24 +13,12 @@ AbstractMonitorService::AbstractMonitorService(const QString &serviceName,
 											   QObject *parent):
 	QObject(parent),
 	mRoot(0),
-	mConnection(VBusItems::getConnection("serviceName")),
 	mServiceName(serviceName),
 	mServiceRegistered(false)
 {
 	QString processName = QCoreApplication::arguments()[0];
-	// The D-Bus paths /Mgmt/Connection, /ProductName, and /Connected are used
-	// by system-calc to determine whether a service is connected.
-	// /Connected must be 1. /Mgmt/Connection and /ProductName must exist and
-	// be valid.
 	produce("/Mgmt/ProcessName", processName);
 	produce("/Mgmt/ProcessVersion", VERSION);
-	produce("/Mgmt/Connection", "None");
-	produce("/Connected", 1);
-	produce("/ProductName", "ZBM summary");
-	// produce("/FirmwareVersion", BatteryController->firmwareVersion());
-	// produce("/ProductId", VE_PROD_ID_REDFLOW_ZBM2);
-	// produce("/DeviceType", BatteryController->deviceType());
-	// produce("/DeviceInstance", deviceInstance);
 
 	QTimer *timer = new QTimer(this);
 	connect(timer, SIGNAL(timeout()), this, SLOT(onTimer()));
@@ -40,8 +28,11 @@ AbstractMonitorService::AbstractMonitorService(const QString &serviceName,
 
 AbstractMonitorService::~AbstractMonitorService()
 {
-	if (mServiceRegistered)
-		mConnection.unregisterService(mServiceName);
+	if (mServiceRegistered) {
+		QLOG_INFO() << "Unregistering service" << mServiceName;
+		QDBusConnection connection = VBusItems::getConnection(mServiceName);
+		connection.unregisterService(mServiceName);
+	}
 }
 
 void AbstractMonitorService::addBattery(const BatteryController *c)
@@ -53,7 +44,11 @@ void AbstractMonitorService::addBattery(const BatteryController *c)
 
 void AbstractMonitorService::registerService()
 {
-	if (!mConnection.registerService(mServiceName)) {
+	if (mServiceRegistered)
+		return;
+	QLOG_INFO() << "Registering service" << mServiceName;
+	QDBusConnection connection = VBusItems::getConnection(mServiceName);
+	if (!connection.registerService(mServiceName)) {
 		QLOG_ERROR() << "Could not register D-Bus service:" << mServiceName;
 		return;
 	}
@@ -66,9 +61,10 @@ VBusItem *AbstractMonitorService::produce(const QString &path,
 										  int precision)
 {
 	VBusItem *item = new VBusItem(this);
-	item->produce(mConnection, path, "", value, unit, precision);
+	QDBusConnection connection = VBusItems::getConnection(mServiceName);
+	item->produce(connection, path, "", value, unit, precision);
 	if (mRoot == 0) {
-		mRoot = new VBusNode(mConnection, "/", this);
+		mRoot = new VBusNode(connection, "/", this);
 	}
 	mRoot->addChild(path, item);
 	return item;

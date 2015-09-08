@@ -134,7 +134,7 @@ void DeviceScanner::addNewDevice(int address)
 
 void DeviceScanner::scanAddress(int address)
 {
-	QLOG_WARN() << __FUNCTION__ << "Scanning address:" << address;
+	// QLOG_WARN() << __FUNCTION__ << "Scanning address:" << address;
 	mProbedAddress = address;
 	if (mScanInterval < 250) {
 		mModbus->readRegisters(ModbusRtu::ReadHoldingRegisters, address, 0x9010, 1);

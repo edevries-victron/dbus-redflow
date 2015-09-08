@@ -7,6 +7,10 @@ static const QString ServiceName = "com.victronenergy.bms.zbm";
 BmsService::BmsService(QObject *parent):
 	AbstractMonitorService(ServiceName, parent)
 {
+	produce("/Mgmt/Connection", "None");
+	produce("/ProductName", "ZBM BMS");
+	produce("/Connected", 1);
+
 	mAllowedToCharge = produce("/AllowedToCharge", 0);
 	mAllowedToDischarge = produce("/AllowedToDischarge", 0);
 }
