@@ -69,12 +69,6 @@ private slots:
 	void onRequestImmediateSelfMaintenanceChanged();
 
 private:
-	void startNextAction();
-
-	void readRegisters(quint16 startReg, quint16 count);
-
-	void writeRegister(quint16 reg, quint16 value);
-
 	enum State {
 		Serial,
 		FirmwareVersion,
@@ -94,6 +88,14 @@ private:
 		Init = Serial,
 		Start = DeviceState
 	};
+
+	void startNextAction();
+
+	void queueWriteAction(State writeState);
+
+	void readRegisters(quint16 startReg, quint16 count);
+
+	void writeRegister(quint16 reg, quint16 value);
 
 	BatteryController *mBatteryController;
 	bool mUpdatingController;

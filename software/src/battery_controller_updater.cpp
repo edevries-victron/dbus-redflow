@@ -184,7 +184,7 @@ void BatteryControllerUpdater::onReadCompleted(int function, quint8 slaveAddress
 		mBatteryController->setSOC(registers[0] / 100.0);
 		mBatteryController->setSOCAmpHrs(static_cast<qint16>(registers[1]) / 10.0);
 		mBatteryController->setBattVolts(registers[2] / 10.0);
-		mBatteryController->setBattAmps(-static_cast<qint16>(-registers[3]) / 10.0);
+		mBatteryController->setBattAmps(-static_cast<qint16>(registers[3]) / 10.0);
 		mBatteryController->setBattTemp(static_cast<qint16>(registers[4]) / 10.0);
 		mBatteryController->setAirTemp(static_cast<qint16>(registers[5]) / 10.0);
 		mState = OperationalMode;
@@ -218,12 +218,12 @@ void BatteryControllerUpdater::onReadCompleted(int function, quint8 slaveAddress
 void BatteryControllerUpdater::onWriteCompleted(int function, quint8 slaveAddress,
 										  quint16 address, quint16 value)
 {
-	if (slaveAddress != mBatteryController->DeviceAddress())
-		return;
-	QLOG_WARN() << __FUNCTION__ << slaveAddress << address << value;
 	Q_UNUSED(function)
 	Q_UNUSED(address)
 	Q_UNUSED(value)
+	if (slaveAddress != mBatteryController->DeviceAddress())
+		return;
+	QLOG_WARN() << __FUNCTION__ << slaveAddress << address << value;
 	switch (mState) {
 	case SetAddress:
 		mTmpState = Init;
@@ -236,6 +236,7 @@ void BatteryControllerUpdater::onWriteCompleted(int function, quint8 slaveAddres
 		// operational mode. By setting the mode to wait, we ensure that the
 		// operational mode will not be retrieved for 5 seconds, preventing the
 		// displayed to switch back temporarily to the previous value.
+		mStopwatch.start();
 		mTmpState = Wait;
 		break;
 	case RequestDelayedMaintenance:
@@ -245,7 +246,7 @@ void BatteryControllerUpdater::onWriteCompleted(int function, quint8 slaveAddres
 		mBatteryController->setRequestImmediateSelfMaintenance(0);
 		break;
 	default:
-		mState = DeviceState;
+		mTmpState = DeviceState;
 		break;
 	}
 	mState = mTmpState;
@@ -274,7 +275,7 @@ void BatteryControllerUpdater::onWaitFinished()
 void BatteryControllerUpdater::onClearStatusRegisterFlagsChanged()
 {
 	if (mBatteryController->ClearStatusRegisterFlags() != 0)
-		mTmpState = ClearStatus;
+		queueWriteAction(ClearStatus);
 }
 
 void BatteryControllerUpdater::onOperationalModeChanged()
@@ -282,24 +283,25 @@ void BatteryControllerUpdater::onOperationalModeChanged()
 	QLOG_WARN() << __FUNCTION__ << mBatteryController->operationalMode() << mUpdatingController;
 	if (mUpdatingController)
 		return;
-	mTmpState = SetOperationalMode;
+	queueWriteAction(SetOperationalMode);
 }
 
 void BatteryControllerUpdater::onRequestDelayedSelfMaintenanceChanged()
 {
 	if (mBatteryController->RequestDelayedSelfMaintenance() != 0)
-		mTmpState = RequestDelayedMaintenance;
+		queueWriteAction(RequestDelayedMaintenance);
 }
 
 void BatteryControllerUpdater::onRequestImmediateSelfMaintenanceChanged()
 {
 	if (mBatteryController->RequestImmediateSelfMaintenance())
-		mTmpState = RequestImmediateMaintenance;
+		queueWriteAction(RequestImmediateMaintenance);
 }
 
 void BatteryControllerUpdater::startNextAction()
 {
 	// QLOG_WARN() << __FUNCTION__ << mState << mTmpState;
+	// mTmpState == Wait indicates that no write is pending.
 	if (mTmpState != Wait) {
 		State tmp = mTmpState;
 		mTmpState = mState;
@@ -359,6 +361,17 @@ void BatteryControllerUpdater::startNextAction()
 		mState = Start;
 		startNextAction();
 		break;
+	}
+}
+
+void BatteryControllerUpdater::queueWriteAction(State writeState)
+{
+	if (mState == Wait) {
+		mTmpState = Wait;
+		mState = writeState;
+		startNextAction();
+	} else {
+		mTmpState = writeState;
 	}
 }
 
