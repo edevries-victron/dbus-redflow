@@ -137,14 +137,19 @@ void BatteryControllerUpdater::onReadCompleted(int function, quint8 slaveAddress
 		break;
 	}
 	case FirmwareVersion:
-//		QLOG_WARN() << __FUNCTION__ << "Fw:" << registers[0] << registers[1];
-//		QString fwVersion = QString("%1.%2.%3").
-//				arg(registers[0] / 100, 2, 10, QChar('0')).
-//				arg(registers[0] % 100, 2, 10, QChar('0')).
-//				arg(registers[1], 2, 10, QChar('0'));
-		mBatteryController->setFirmwareVersion((registers[0] << 16) | registers[1]);
+	{
+		/// @todo EV Move formatting elsewhere. For example to D-Bus code
+		/// (setText). Right now that is not possible.
+		QLOG_WARN() << __FUNCTION__ << "Fw:" << registers[0] << registers[1];
+		QString fwVersion = QString("%1.%2.%3").
+				arg(registers[0] / 100, 2, 10, QChar('0')).
+				arg(registers[0] % 100, 2, 10, QChar('0')).
+				arg(registers[1], 2, 10, QChar('0'));
+		mBatteryController->setFirmwareVersion(fwVersion);
+		// mBatteryController->setFirmwareVersion((registers[0] << 16) | registers[1]);
 		mState = Start;
 		break;
+	}
 	case DeviceState:
 	{
 		qint16 summary = registers[0];

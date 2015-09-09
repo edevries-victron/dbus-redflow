@@ -25,8 +25,6 @@ BatteryControllerBridge::BatteryControllerBridge(BatteryController *BatteryContr
 				   arg(BatteryController->DeviceAddress()));
 
 	produce(BatteryController, "connectionState", "/Connected");
-	// produce(BatteryController, "errorCode", "/ErrorCode");
-
 	produce(emSettings, "customName", "/CustomName");
 
 	QString processName = QCoreApplication::arguments()[0];
@@ -34,11 +32,11 @@ BatteryControllerBridge::BatteryControllerBridge(BatteryController *BatteryContr
 	// need an update mechanism.
 	produce("/Mgmt/ProcessName", processName);
 	produce("/Mgmt/ProcessVersion", VERSION);
+	produce("/Mgmt/Connection", "Modbus");
 	produce("/FirmwareVersion", BatteryController->firmwareVersion());
 	produce("/ProductName", BatteryController->productName());
 	produce("/ProductId", VE_PROD_ID_REDFLOW_ZBM2);
 	produce("/DeviceType", BatteryController->deviceType());
-	produce("/Mgmt/Connection", "Modbus");
 	produce("/DeviceInstance", 40 + BatteryController->DeviceAddress());
 	produce("/Serial", BatteryController->serial());
 

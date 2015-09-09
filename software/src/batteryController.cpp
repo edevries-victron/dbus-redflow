@@ -6,7 +6,6 @@ BatteryController::BatteryController(const QString &portName, int deviceAddress,
 	QObject(parent),
 	mConnectionState(Disconnected),
 	mDeviceType(0),
-	mFirmwareVersion(0),
 	mPortName(portName),
 	mBattVolts(0),
 	mBussVolts(0),
@@ -59,7 +58,7 @@ void BatteryController::setDeviceType(int t)
 
 QString BatteryController::productName() const
 {
-	return "ZBM " + serial();
+	return QString("ZBM %1").arg(DeviceAddress());
 }
 
 QString BatteryController::portName() const
@@ -81,12 +80,12 @@ void BatteryController::setSerial(const QString &s)
 	emit productName();
 }
 
-int BatteryController::firmwareVersion() const
+QString BatteryController::firmwareVersion() const
 {
 	return mFirmwareVersion;
 }
 
-void BatteryController::setFirmwareVersion(int v)
+void BatteryController::setFirmwareVersion(const QString &v)
 {
 	if (mFirmwareVersion == v)
 		return;

@@ -26,7 +26,7 @@ class BatteryController : public QObject
 	Q_PROPERTY(int deviceType READ deviceType WRITE setDeviceType NOTIFY deviceTypeChanged)
 	Q_PROPERTY(QString productName READ productName)
 	Q_PROPERTY(QString serial READ serial WRITE setSerial NOTIFY serialChanged)
-	Q_PROPERTY(int firmwareVersion READ firmwareVersion WRITE setFirmwareVersion NOTIFY firmwareVersionChanged)
+	Q_PROPERTY(QString firmwareVersion READ firmwareVersion WRITE setFirmwareVersion NOTIFY firmwareVersionChanged)
 	Q_PROPERTY(QString portName READ portName)
 	Q_PROPERTY(int operationalMode READ operationalMode WRITE setOperationalMode NOTIFY operationalModeChanged)
 //	Q_PROPERTY(int StsRegSummary READ StsRegSummary WRITE setStsRegSummary NOTIFY stsRegSummaryChanged)
@@ -120,9 +120,9 @@ public:
 
 	void setSerial(const QString &s);
 
-	int firmwareVersion() const;
+	QString firmwareVersion() const;
 
-	void setFirmwareVersion(int v);
+	void setFirmwareVersion(const QString &v);
 
 	double BattVolts() const;
 
@@ -235,7 +235,7 @@ signals:
 private:
 	ConnectionState mConnectionState;
 	int mDeviceType;
-	int mFirmwareVersion;
+	QString mFirmwareVersion;
 	QString mPortName;
 	QString mSerial;
 	double mBattVolts;
