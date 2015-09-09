@@ -21,6 +21,12 @@ private:
 	VBusItem *mPower;
 	VBusItem *mTemperature;
 	VBusItem *mSoc;
+	VBusItem *mClearStatusRegister;
+	VBusItem *mOperationalMode;
+	VBusItem *mDelayedSelfMaintenance;
+	VBusItem *mImmediateSelfMaintenance;
+	VBusItem *mMaintenanceActive;
+	VBusItem *mMaintenanceNeeded;
 };
 
 #endif // BATTERYSUMMARY_H

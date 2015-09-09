@@ -35,7 +35,7 @@ AbstractMonitorService::~AbstractMonitorService()
 	}
 }
 
-void AbstractMonitorService::addBattery(const BatteryController *c)
+void AbstractMonitorService::addBattery(BatteryController *c)
 {
 	mControllers.append(c);
 	connect(c, SIGNAL(destroyed()), this, SLOT(onDestroyed()));
@@ -70,7 +70,7 @@ VBusItem *AbstractMonitorService::produce(const QString &path,
 	return item;
 }
 
-const QList<const BatteryController *> &AbstractMonitorService::controllers() const
+const QList<BatteryController *> &AbstractMonitorService::controllers() const
 {
 	return mControllers;
 }

@@ -17,7 +17,7 @@ public:
 
 	virtual ~AbstractMonitorService();
 
-	void addBattery(const BatteryController *c);
+	void addBattery(BatteryController *c);
 
 	void registerService();
 
@@ -27,7 +27,7 @@ protected:
 	VBusItem *produce(const QString &path, const QVariant &value,
 					  const QString &unit = QString(), int precision = 0);
 
-	const QList<const BatteryController *> &controllers() const;
+	const QList<BatteryController *> &controllers() const;
 
 private slots:
 	void onTimer();
@@ -36,7 +36,7 @@ private slots:
 
 private:
 	VBusNode *mRoot;
-	QList<const BatteryController *> mControllers;
+	QList<BatteryController *> mControllers;
 	QString mServiceName;
 	bool mServiceRegistered;
 };
