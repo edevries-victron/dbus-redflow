@@ -38,6 +38,7 @@ BatteryControllerUpdater::BatteryControllerUpdater(BatteryController *mBatteryCo
 												   QObject *parent):
 	QObject(parent),
 	mBatteryController(mBatteryController),
+	mDeviceAddress(mBatteryController->DeviceAddress()),
 	mUpdatingController(false),
 	mSettings(0),
 	mModbus(0),
@@ -77,7 +78,7 @@ BatteryControllerSettings *BatteryControllerUpdater::settings()
 void BatteryControllerUpdater::onErrorReceived(int errorType, quint8 slaveAddress,
 											   int exception)
 {
-	if (slaveAddress != mBatteryController->DeviceAddress())
+	if (slaveAddress != mDeviceAddress)
 		return;
 	QLOG_WARN() << __FUNCTION__ << errorType << slaveAddress << exception;
 	if (errorType == ModbusRtu::Timeout) {
@@ -121,7 +122,7 @@ static int getAlarmState(quint16 errorValue, quint16 warningValue, int bit)
 void BatteryControllerUpdater::onReadCompleted(int function, quint8 slaveAddress,
 											   const QList<quint16> &registers)
 {
-	if (slaveAddress != mBatteryController->DeviceAddress())
+	if (slaveAddress != mDeviceAddress)
 		return;
 	// QLOG_WARN() << __FUNCTION__ << slaveAddress;
 	Q_UNUSED(function)
@@ -221,7 +222,7 @@ void BatteryControllerUpdater::onWriteCompleted(int function, quint8 slaveAddres
 	Q_UNUSED(function)
 	Q_UNUSED(address)
 	Q_UNUSED(value)
-	if (slaveAddress != mBatteryController->DeviceAddress())
+	if (slaveAddress != mDeviceAddress)
 		return;
 	QLOG_WARN() << __FUNCTION__ << slaveAddress << address << value;
 	switch (mState) {
@@ -296,6 +297,12 @@ void BatteryControllerUpdater::onRequestImmediateSelfMaintenanceChanged()
 {
 	if (mBatteryController->RequestImmediateSelfMaintenance())
 		queueWriteAction(RequestImmediateMaintenance);
+}
+
+void BatteryControllerUpdater::onDeviceAddressChanged()
+{
+	if (mBatteryController->RequestImmediateSelfMaintenance())
+		queueWriteAction(SetAddress);
 }
 
 void BatteryControllerUpdater::startNextAction()
@@ -378,12 +385,12 @@ void BatteryControllerUpdater::queueWriteAction(State writeState)
 void BatteryControllerUpdater::readRegisters(quint16 startReg, quint16 count)
 {
 	mModbus->readRegisters(ModbusRtu::ReadHoldingRegisters,
-						   mBatteryController->DeviceAddress(), startReg, count);
+						   mDeviceAddress, startReg, count);
 }
 
 void BatteryControllerUpdater::writeRegister(quint16 reg, quint16 value)
 {
 	QLOG_WARN() << __FUNCTION__ << reg << value;
 	mModbus->writeRegister(ModbusRtu::WriteSingleRegister,
-						   mBatteryController->DeviceAddress(), reg, value);
+						   mDeviceAddress, reg, value);
 }

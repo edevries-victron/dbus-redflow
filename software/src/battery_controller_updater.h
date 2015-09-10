@@ -68,6 +68,8 @@ private slots:
 
 	void onRequestImmediateSelfMaintenanceChanged();
 
+	void onDeviceAddressChanged();
+
 private:
 	enum State {
 		Serial,
@@ -98,6 +100,7 @@ private:
 	void writeRegister(quint16 reg, quint16 value);
 
 	BatteryController *mBatteryController;
+	int mDeviceAddress;
 	bool mUpdatingController;
 	BatteryControllerSettings *mSettings;
 	ModbusRtu *mModbus;
