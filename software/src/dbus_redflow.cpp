@@ -5,6 +5,7 @@
 #include "battery_controller_updater.h"
 #include "batteryController.h"
 #include "battery_summary.h"
+#include "battery_summary_bridge.h"
 #include "bms_service.h"
 #include "dbus_redflow.h"
 #include "dbus_service_monitor.h"
@@ -84,17 +85,20 @@ void DBusRedflow::onDeviceInitialized()
 		// function will update the values within the summary, so we avoid
 		// registering a service without valid values.
 		mSummary->addBattery(m);
-		mSummary->registerService();
+		BatterySummaryBridge *bridge = new BatterySummaryBridge(mSummary, mSummary);
+		bridge->registerService();
 	} else {
 		mSummary->addBattery(m);
 	}
-	if (mBmsService == 0) {
-		mBmsService = new BmsService(this);
-		mBmsService->addBattery(m);
-		mBmsService->registerService();
-	} else {
-		mBmsService->addBattery(m);
-	}
+	/// @todo EV: Disbabled for now, because BMS like support is still is
+	/// design.
+//	if (mBmsService == 0) {
+//		mBmsService = new BmsService(this);
+//		mBmsService->addBattery(m);
+//		mBmsService->registerService();
+//	} else {
+//		mBmsService->addBattery(m);
+//	}
 }
 
 void DBusRedflow::onConnectionLost()
