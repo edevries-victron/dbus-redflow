@@ -24,7 +24,7 @@ ModbusRtu::ModbusRtu(const QString &portName, int baudrate,
 	mData.reserve(16);
 
 	resetStateEngine();
-	mTimer->setInterval(250);
+	mTimer->setInterval(1000);
 	connect(mTimer, SIGNAL(timeout()), this, SLOT(onTimeout()));
 }
 
